@@ -1,0 +1,22 @@
+# Build artifacts
+Build/
+Objects/
+Listings/
+Reports/
+RTE/
+*.hex
+*.bin
+*.srec
+*.axf
+*.out
+*.map
+*.lst
+*.d
+*.dep
+*.bak
+
+*.papa
+*.uvoptx
+*.scvd
+*.settings
+*.user
