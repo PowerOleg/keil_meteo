@@ -16,6 +16,9 @@
 extern uint8_t keys[ROWS][COLS];
 extern volatile uint8_t symbol_index;
 
+extern const uint16_t row_pins[ROWS];
+extern const uint16_t col_pins[COLS];
+
 typedef struct {
     uint8_t is_pressed;   // Флаг: 1 - кнопка сейчас считается нажатой
     uint8_t key_value;    // Значение клавиши ('1', 'A' и т.д.)
@@ -25,8 +28,8 @@ typedef struct {
 // Создаем массив состояний для всех клавиш
 extern volatile Key_state keys_state[ROWS][COLS];
 
-void Keypad_init_gpio(const uint16_t *row_pins, const uint16_t *col_pins);
-uint8_t Check_keypad_pressed(const uint16_t *row_pins, const uint16_t *col_pins);
+void Keypad_init_gpio(void);
+uint8_t Check_keypad_pressed(void);
 char Keypad_listen(const uint16_t *row_pins, const uint16_t *col_pins);
 void Input_time(uint8_t *time, const uint8_t pressed_key);
 void Input_date(uint8_t *date, const uint8_t pressed_key);

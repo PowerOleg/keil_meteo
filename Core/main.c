@@ -21,59 +21,6 @@
 
 volatile uint8_t cur_action = 0;
 
-const uint8_t *font_table[] = {
-    digit_font_5x7[0], digit_font_5x7[1], digit_font_5x7[2],
-    digit_font_5x7[3], digit_font_5x7[4], digit_font_5x7[5],
-    digit_font_5x7[6], digit_font_5x7[7], digit_font_5x7[8],
-    digit_font_5x7[9],
-    colon_5x7,          // 10
-    minus_5x7,          // 11
-    dot_5x7,            // 12
-    degree_5x7,         // 13
-    letter_C_5x7,       // 14
-		percent_5x7,				// 15
-		exclamation_5x7,		// 16
-		letter_m_5x7,				// 17
-		letter_p_5x7,				// 18
-		letter_T_cyr_5x7,		// 19
-		letter_V_cap_5x7,		// 20
-		letter_E_cap_5x7,		// 21
-		letter_M_cap_5x7,		// 22
-		letter_Ya_cap_5x7,	// 23
-		letter_ru_P_cap_5x7,// 24
-		letter_A_cap_5x7,		// 25
-		hyphen_5x7,					// 26
-		letter_L_cap_5x7,		// 27
-		letter_Zh_cap_5x7,	// 28
-		letter_N_cap_5x7,		// 29
-		letter_O_cap_5x7,		// 30
-		letter_SoftSign_5x7,// 31
-		letter_D_cap_5x7,		// 32
-		letter_I_cap_5x7,		// 33
-		letter_U_cap_5x7,		// 34
-		space_5x7,					// 35
-		slash_5x7						// 36
-};
-
-const uint16_t row_pins[ROWS] = {GPIO_Pin_11, GPIO_Pin_10, GPIO_Pin_1, GPIO_Pin_0};
-const uint16_t col_pins[COLS] = {GPIO_Pin_12, GPIO_Pin_13, GPIO_Pin_14, GPIO_Pin_15};
-
-// Индексы: В(20), Р(18), Е(21), M(22), Я(23), :(10)
-const uint8_t vremya_indices[] = {20, 18, 21, 22, 23, 10};
-// Индексы: Т(19), Е(21), M(22), П(24), -(26), Р(18), А(25), :(10)
-const uint8_t temperature_indices[] = {19, 21, 22, 24, 26, 18, 25, 10};
-// Индексы: В(20), Л(27), А(25), Ж(28), Н(29), О(30), С(14), Т(19), Ь(31), :(10)
-const uint8_t humidity_indices[] = {20, 27, 25, 28, 29, 30, 14, 19, 31, 10};
-// Индексы: Д(32), А(25), В(20), Л(27), Е(21), Н(29), И(33), Е(21), :(10)
-const uint8_t pressure_indices[] = {32, 25, 20, 27, 21, 29, 33, 21, 10};
-// Индексы: В(20), В(20), Е(21), Д(32), И(33), Т(19), Е(21) 
-const uint8_t init_message_line0[] = {20, 20, 21, 32, 33, 19, 21, 35};
-// Д(32), А(25), Т(19), У(34), пробел(35), В(20), Р(18), Е(21), M(22), Я(23)
-//const uint8_t init_message_line1[] = {32, 25, 19, 34, 36, 20, 18, 21, 22, 23, 10};
-const uint8_t init_message_line1[] = {20, 18, 21, 22, 23};
-// Д(32), А(25), Т(19), У(34),
-const uint8_t init_message_line2[] = {32, 25, 19, 34};
-
 volatile uint8_t initial_set_up = 1;
 volatile uint8_t pressed_key = 0;
 uint8_t time_indices[] = {0, 0, 10, 0, 0};// время в формате: 12:34
@@ -90,10 +37,9 @@ void RTC_IRQHandler(void)
     }
 }
 
-
 void Set_up_time_and_date(uint8_t *time, uint8_t *date)
 {
-		pressed_key = Check_keypad_pressed(row_pins, col_pins);
+		pressed_key = Check_keypad_pressed();
 		if (symbol_index > 4)
 		{
 				Input_date(date, pressed_key);					
@@ -145,9 +91,8 @@ int main(void)
 		Tim2_count_mode_up();
 		
 
-//keypad 4x4
-		// Назначаем пины к строкам и столбцам клавитуры
-		Keypad_init_gpio(row_pins, col_pins);
+		//keypad 4x4
+		Keypad_init_gpio();
 
 //	UART2
 //	Uart2_init();//require Tim2
@@ -175,11 +120,6 @@ int main(void)
 	Flash_write_string(test_string);
   Flash_read_string(read_back, sizeof(read_back));*/
 	
-
-	
-
-
-		
 		//BME280
 		SPI_clear_rxne();
 		BME280_init();
@@ -193,8 +133,8 @@ int main(void)
 		Led_toggle(&led_c13);
 		Led_toggle(&led_a8);
 
-		//08:01 04.07.2026);
-		uint8_t time[TIME_SIZE] = {0};
+		
+		uint8_t time[TIME_SIZE] = {0};//08:01
 		uint8_t date[10] = {0};//04.07.2026
 		time[2] = 10;
 		date[2] = 12;
@@ -210,7 +150,6 @@ int main(void)
 						continue;
 				}
 				
-				//every 10 sec gets measure from BME280
 				if (tim3_10sec_flag)
 				{
 						tim3_10sec_flag = 0;
@@ -218,7 +157,7 @@ int main(void)
 						BME280_compensate(&raw_data, &bmp280_result);
 				}
 					
-				pressed_key = Check_keypad_pressed(row_pins, col_pins);
+				pressed_key = Check_keypad_pressed();
 				if (pressed_key != NO_KEY)
 						cur_action = pressed_key;
 

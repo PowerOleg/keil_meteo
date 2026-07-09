@@ -5,6 +5,44 @@
 
 uint8_t oled_screen[OLED_BUFSIZE]; // 1024 байта
 
+const uint8_t *font_table[] = {
+    digit_font_5x7[0], digit_font_5x7[1], digit_font_5x7[2],
+    digit_font_5x7[3], digit_font_5x7[4], digit_font_5x7[5],
+    digit_font_5x7[6], digit_font_5x7[7], digit_font_5x7[8],
+    digit_font_5x7[9],
+    colon_5x7,          // 10
+    minus_5x7,          // 11
+    dot_5x7,            // 12
+    degree_5x7,         // 13
+    letter_C_5x7,       // 14
+		percent_5x7,				// 15
+		exclamation_5x7,		// 16
+		letter_m_5x7,				// 17
+		letter_p_5x7,				// 18
+		letter_T_cyr_5x7,		// 19
+		letter_V_cap_5x7,		// 20
+		letter_E_cap_5x7,		// 21
+		letter_M_cap_5x7,		// 22
+		letter_Ya_cap_5x7,	// 23
+		letter_ru_P_cap_5x7,// 24
+		letter_A_cap_5x7,		// 25
+		hyphen_5x7,					// 26
+		letter_L_cap_5x7,		// 27
+		letter_Zh_cap_5x7,	// 28
+		letter_N_cap_5x7,		// 29
+		letter_O_cap_5x7,		// 30
+		letter_SoftSign_5x7,// 31
+		letter_D_cap_5x7,		// 32
+		letter_I_cap_5x7,		// 33
+		letter_U_cap_5x7,		// 34
+		space_5x7,					// 35
+		slash_5x7						// 36
+};
+
+
+
+
+
 const uint8_t colon_5x7[COL_PX] = {0x00, 0x36, 0x36, 0x00, 0x00};// Двоеточие
 const uint8_t minus_5x7[COL_PX] = {0x00, 0x08, 0x08, 0x08, 0x00};// Минус
 const uint8_t dot_5x7[COL_PX]   = {0x00, 0x60, 0x60, 0x00, 0x00};// Точка
@@ -37,6 +75,26 @@ const uint8_t letter_D_cap_5x7[5] = {0x60, 0x3E, 0x21, 0x3F, 0x60};// Д
 const uint8_t letter_I_cap_5x7[5] = {0x7F, 0x20, 0x10, 0x08, 0x7F};// И 
 const uint8_t letter_U_cap_5x7[5] = {0x03, 0x44, 0x48, 0x48, 0x3F};//У
 const uint8_t slash_5x7[5] = {0x20, 0x10, 0x08, 0x04, 0x02};
+
+
+// Индексы: В(20), Р(18), Е(21), M(22), Я(23), :(10)
+const uint8_t vremya_indices[] = {20, 18, 21, 22, 23, 10};
+// Индексы: Т(19), Е(21), M(22), П(24), -(26), Р(18), А(25), :(10)
+const uint8_t temperature_indices[] = {19, 21, 22, 24, 26, 18, 25, 10};
+// Индексы: В(20), Л(27), А(25), Ж(28), Н(29), О(30), С(14), Т(19), Ь(31), :(10)
+const uint8_t humidity_indices[] = {20, 27, 25, 28, 29, 30, 14, 19, 31, 10};
+// Индексы: Д(32), А(25), В(20), Л(27), Е(21), Н(29), И(33), Е(21), :(10)
+const uint8_t pressure_indices[] = {32, 25, 20, 27, 21, 29, 33, 21, 10};
+// Индексы: В(20), В(20), Е(21), Д(32), И(33), Т(19), Е(21) 
+const uint8_t init_message_line0[] = {20, 20, 21, 32, 33, 19, 21, 35};
+// Д(32), А(25), Т(19), У(34), пробел(35), В(20), Р(18), Е(21), M(22), Я(23)
+//const uint8_t init_message_line1[] = {32, 25, 19, 34, 36, 20, 18, 21, 22, 23, 10};
+const uint8_t init_message_line1[] = {20, 18, 21, 22, 23};
+// Д(32), А(25), Т(19), У(34),
+const uint8_t init_message_line2[] = {32, 25, 19, 34};
+
+
+
 //Битовые маски символов (5x7)
 // Цифры 0..9
 const uint8_t digit_font_5x7[10][5] = {

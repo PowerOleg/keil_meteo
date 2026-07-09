@@ -17,6 +17,8 @@
 #define OLED_RES_LOW()   			GPIO_ResetBits(GPIOA, GPIO_Pin_10)
 
 
+extern const uint8_t *font_table[];
+	
 //Битовые маски символов (5x7)
 extern const uint8_t digit_font_5x7[10][COL_PX];// Цифры 0..9
 extern const uint8_t colon_5x7[COL_PX];// Двоеточие
@@ -54,6 +56,14 @@ extern const uint8_t letter_D_cap_5x7[5];
 extern const uint8_t letter_I_cap_5x7[5];
 extern const uint8_t letter_U_cap_5x7[5];
 extern const uint8_t slash_5x7[5];
+
+extern const uint8_t vremya_indices[];
+extern const uint8_t temperature_indices[];
+extern const uint8_t humidity_indices[];
+extern const uint8_t pressure_indices[];
+extern const uint8_t init_message_line0[];
+extern const uint8_t init_message_line1[];
+extern const uint8_t init_message_line2[];
 
 void Oled_gpio_init(void);
 void Oled_spi_init(void);
