@@ -14,7 +14,7 @@ typedef struct
 uint8_t RTC_Hours;
 uint8_t RTC_Minutes;
 uint8_t RTC_Seconds;
-uint8_t RTC_Date;
+uint8_t RTC_Day;
 uint8_t RTC_Wday;
 uint8_t RTC_Month;
 uint16_t RTC_Year;
@@ -22,10 +22,12 @@ uint16_t RTC_Year;
 
 
 extern volatile RTC_DateTimeTypeDef currentDateTime;
-extern volatile uint32_t RTC_counter;
+//extern volatile uint32_t RTC_counter;
 
 uint32_t RTC_GetRTC_Counter(void);
-void RTC_GetDateTime(uint32_t RTC_counter, volatile RTC_DateTimeTypeDef *RTC_DateTimeStruct);
+void Set_date_and_time(uint8_t *time, uint8_t *date);
+void RTC_GetDateTime(uint32_t RTC_counter);
+void RTC_GetDateTimeHenry(uint32_t RTC_counter);
 void RTC_GetLogFormat(volatile RTC_DateTimeTypeDef* RTC_DateTimeStruct, char *buffer);//[2026-07-02 08:01:03]
 void RTC_GetMyFormat(volatile RTC_DateTimeTypeDef* RTC_DateTimeStruct, char *buffer);
 

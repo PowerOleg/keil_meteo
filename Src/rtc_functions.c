@@ -3,8 +3,7 @@
 #include <stdio.h>
 
 volatile RTC_DateTimeTypeDef currentDateTime;
-volatile uint32_t RTC_counter = 0;
-
+//volatile uint32_t RTC_counter = 0;
 
 uint32_t RTC_GetRTC_Counter(void)
 {
@@ -15,7 +14,7 @@ uint32_t RTC_GetRTC_Counter(void)
 		a=(14-currentDateTime.RTC_Month)/12;
 		y=currentDateTime.RTC_Year+4800-a;
 		m=currentDateTime.RTC_Month+(12*a)-3;
-		JDN=currentDateTime.RTC_Date;
+		JDN=currentDateTime.RTC_Day;
 		JDN+=(153*m+2)/5;
 		JDN+=365*y;
 		JDN+=y/4;
@@ -31,7 +30,7 @@ uint32_t RTC_GetRTC_Counter(void)
 		return JDN;
 }
 
-void RTC_GetDateTime(uint32_t RTC_counter, volatile RTC_DateTimeTypeDef *RTC_DateTimeStruct)
+void RTC_GetDateTime(uint32_t RTC_counter)
 {
 		unsigned long time;
 		unsigned long t1, a, b, c, d, e, m;
@@ -65,13 +64,13 @@ void RTC_GetDateTime(uint32_t RTC_counter, volatile RTC_DateTimeTypeDef *RTC_Dat
 		mday = e - (153*m+2)/5 + 1;
 		mon = m + 3 - 12*(m/10);
 		year = 100*b + d - 4800 + (m/10);
-		RTC_DateTimeStruct->RTC_Year = year;
-		RTC_DateTimeStruct->RTC_Month = mon;
-		RTC_DateTimeStruct->RTC_Date = mday;
-		RTC_DateTimeStruct->RTC_Hours = hour;
-		RTC_DateTimeStruct->RTC_Minutes = min;
-		RTC_DateTimeStruct->RTC_Seconds = sec;
-		RTC_DateTimeStruct->RTC_Wday = wday;
+		currentDateTime.RTC_Year = year;
+		currentDateTime.RTC_Month = mon;
+		currentDateTime.RTC_Day = mday;
+		currentDateTime.RTC_Hours = hour;
+		currentDateTime.RTC_Minutes = min;
+		currentDateTime.RTC_Seconds = sec;
+		currentDateTime.RTC_Wday = wday;
 }
 //[2026-07-02 08:01:03]
 void RTC_GetLogFormat(volatile RTC_DateTimeTypeDef* RTC_DateTimeStruct, char *buffer)
@@ -79,7 +78,7 @@ void RTC_GetLogFormat(volatile RTC_DateTimeTypeDef* RTC_DateTimeStruct, char *bu
 		sprintf(buffer, "\r\n[%04d-%02d-%02d %02d:%02d:%02d]", 
               currentDateTime.RTC_Year,
               currentDateTime.RTC_Month,
-              currentDateTime.RTC_Date,
+              currentDateTime.RTC_Day,
               currentDateTime.RTC_Hours,
               currentDateTime.RTC_Minutes,
               currentDateTime.RTC_Seconds);
@@ -114,8 +113,41 @@ void RTC_GetMyFormat(volatile RTC_DateTimeTypeDef* RTC_DateTimeStruct, char *buf
 
 		sprintf(buffer, "%s %d %s %04d",
 		WDAY[RTC_DateTimeStruct->RTC_Wday],
-		RTC_DateTimeStruct->RTC_Date,
+		RTC_DateTimeStruct->RTC_Day,
 		MONTH[RTC_DateTimeStruct->RTC_Month -1],
 		RTC_DateTimeStruct->RTC_Year);
+}
+
+void RTC_GetDateTimeHenry(uint32_t RTC_counter)
+{
+    uint32_t days, rem;
+    int era, year, month, day, hour, min, sec;
+    
+    // Сначала выделяем время суток (часы/мин/сек), чтобы работать только с днями
+    sec = RTC_counter % 60;
+    RTC_counter /= 60;
+    min = RTC_counter % 60;
+    RTC_counter /= 60;
+    hour = RTC_counter % 24;
+    days = RTC_counter / 24; // Количество дней с 1970 года
+
+    // Алгоритм Хайнриха Сакамото для определения года из количества дней
+    era = (days >= 0 ? days : days - 146096) / 146097;
+    unsigned doe = (unsigned)(days - era * 146097);      // [0, 146096]
+    unsigned yoe = (doe - doe/1460 + doe/36524 - doe/146096) / 365;  // [0, 399]
+    year = yoe + era * 400;
+    unsigned doy = doe - (365*yoe + yoe/4 - yoe/100);                // [0, 365]
+    unsigned mp = (5*doy + 2)/153;                                   // [0, 11]
+    
+    day = doy - (153*mp+2)/5 + 1;          // [1, 31]
+    month = mp + 3 - 12*(mp/10);           // [1, 12]
+    year += (month <= 2);                  // Коррекция года для января/февраля
+
+    currentDateTime.RTC_Year = year;
+    currentDateTime.RTC_Month = month;
+    currentDateTime.RTC_Day = day;
+    currentDateTime.RTC_Hours = hour;
+    currentDateTime.RTC_Minutes = min;
+    currentDateTime.RTC_Seconds = sec;
 }
 

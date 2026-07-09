@@ -15,13 +15,28 @@ const uint8_t percent_15x21[15] = {0};  // '%'
 const uint8_t exclamation_5x7[COL_PX] = {0x00, 0x5F, 0x00, 0x00, 0x00}; // !
 
 //const uint8_t letter_r_5x7[5]   = {0x7F, 0x09, 0x19, 0x29, 0x46}; // р
+const uint8_t letter_V_cap_5x7[5] = {0x7F, 0x49, 0x49, 0x49, 0x36};// B
 const uint8_t letter_p_5x7[5] = {0x7F, 0x09, 0x09, 0x09, 0x06}; // p
+const uint8_t letter_E_cap_5x7[5] = {0x7F, 0x49, 0x49, 0x49, 0x41}; // E
 const uint8_t letter_m_5x7[5]   = {0x7F, 0x02, 0x0C, 0x02, 0x7F}; // м
+const uint8_t letter_M_cap_5x7[5] = {0x7F, 0x02, 0x04, 0x02, 0x7F}; // M
+const uint8_t letter_Ya_cap_5x7[5] = {0x46, 0x29, 0x19, 0x09, 0x7F}; //Я
 // Пробел (пустые 5 столбцов)
 const uint8_t space_5x7[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
-// Буква 'т' (строчная, как T)
-const uint8_t letter_T_cyr_5x7[5] = {0x01, 0x01, 0x7F, 0x01, 0x01};
 
+const uint8_t letter_T_cyr_5x7[5] = {0x01, 0x01, 0x7F, 0x01, 0x01}; //T
+const uint8_t letter_ru_P_cap_5x7[5] = {0x7F, 0x01, 0x01, 0x01, 0x7F}; //П
+const uint8_t letter_A_cap_5x7[5] = {0x7E, 0x09, 0x09, 0x09, 0x7E};
+const uint8_t hyphen_5x7[5] = {0x00, 0x08, 0x08, 0x08, 0x00}; // дефис
+const uint8_t letter_L_cap_5x7[5] = {0x40, 0x3F, 0x01, 0x01, 0x7F};
+const uint8_t letter_Zh_cap_5x7[5] = {0x63, 0x14, 0x7F, 0x14, 0x63};// Ж
+const uint8_t letter_N_cap_5x7[5] = {0x7F, 0x08, 0x08, 0x08, 0x7F};// Н 
+const uint8_t letter_O_cap_5x7[5] = {0x3E, 0x41, 0x41, 0x41, 0x3E};// О
+const uint8_t letter_SoftSign_5x7[5] = {0x7F, 0x48, 0x48, 0x48, 0x30};// Ь
+const uint8_t letter_D_cap_5x7[5] = {0x60, 0x3E, 0x21, 0x3F, 0x60};// Д
+const uint8_t letter_I_cap_5x7[5] = {0x7F, 0x20, 0x10, 0x08, 0x7F};// И 
+const uint8_t letter_U_cap_5x7[5] = {0x03, 0x44, 0x48, 0x48, 0x3F};//У
+const uint8_t slash_5x7[5] = {0x20, 0x10, 0x08, 0x04, 0x02};
 //Битовые маски символов (5x7)
 // Цифры 0..9
 const uint8_t digit_font_5x7[10][5] = {
@@ -346,6 +361,53 @@ void OLED_DrawPercent15x21(uint8_t x, uint8_t y)
     for (int i = 0; i < 15; i++) OLED_WriteByte(page2[i], 1);
 	}
 
+	
+	// Рисует знак процента 15?21 пиксель в глобальный буфер oled_screen
+// x_px   – координата левого верхнего угла по горизонтали (0..127)
+// y_page – координата страницы (0..7), начало знака по вертикали
+void OLED_DrawPercent15x21Buf(uint8_t x_px, uint8_t y_page)
+{
+    // Массивы для трёх страниц (точно как в OLED_DrawPercent15x21)
+    const uint8_t page0[15] = {
+        0x0E, 0x11, 0x11, 0x11, 0x0E,
+        0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x40, 0x20, 0x10
+    };
+    const uint8_t page1[15] = {
+        0x00, 0x00, 0x00, 0x00, 0x40,
+        0x20, 0x10, 0x08, 0x04, 0x02,
+        0x01, 0x00, 0x00, 0x00, 0x00
+    };
+    const uint8_t page2[15] = {
+        0x08, 0x04, 0x02, 0x01, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00,
+        0x70, 0x88, 0x88, 0x88, 0x70
+    };
+
+    // Базовое смещение по Y в пикселях
+    uint8_t y_base = y_page * 8;
+
+    // Обрабатываем три страницы (0–2)
+    const uint8_t* pages[3] = {page0, page1, page2};
+    for (uint8_t p = 0; p < 3; p++) {
+        uint8_t y_offset = p * 8;               // смещение внутри знака (0,8,16)
+        for (uint8_t col = 0; col < 15; col++) {
+            uint8_t byte = pages[p][col];
+            if (byte == 0) continue;
+            for (uint8_t bit = 0; bit < 8; bit++) {
+                if (byte & (1 << bit)) {
+                    uint8_t py = y_base + y_offset + bit; // реальная Y координата
+                    // Знак занимает строки 0..20, игнорируем выход за пределы
+                    if (py < OLED_HEIGHT) {
+                        OLED_SetPixel(x_px + col, py, 1);
+                    }
+                }
+            }
+        }
+    }
+}
+	
+	
 // Печать строки, состоящей из символов с известными масками.
 // symbol_table – массив указателей на 5-байтовые маски,
 // str – индексы в таблице (например, для цифр 0..9 индекс = сама цифра,
@@ -506,12 +568,8 @@ void OLED_PrintPressure(/*uint8_t x, */uint8_t y, uint32_t pressure, uint8_t sca
     if (x_num > OLED_WIDTH) x_num = 0;
     OLED_PrintScaledSymbols(x_num, y, font_table, digits, len, scale);
 
-				/*letter_m_5x7,				// 17
-		letter_r_5x7,				// 18
-		letter_T_cyr_5x7,		// 19
-		letter_C_5x7				// 20*/
     // --- Единица измерения «мм.рт.ст.» (масштаб 2) ---
-    const uint8_t unit_idx[] = {17, 17, 12, 18, 19, 12, 20, 19};
+    const uint8_t unit_idx[] = {17, 17, 12, 18, 19, 12, 14, 19};
     //                          м   м   .    р   т   .    с   т   .
     const uint8_t unit_len = sizeof(unit_idx);
     const uint8_t unit_scale = 2;

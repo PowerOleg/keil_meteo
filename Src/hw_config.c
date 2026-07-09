@@ -56,17 +56,16 @@ void RTC_init_lse(const uint16_t y, const uint8_t m, const uint8_t d, const uint
 		
 		currentDateTime.RTC_Year = y;
     currentDateTime.RTC_Month = m;
-    currentDateTime.RTC_Date = d;
+    currentDateTime.RTC_Day = d;
     currentDateTime.RTC_Hours = h;
     currentDateTime.RTC_Minutes = min;
     currentDateTime.RTC_Seconds = s;
-
-
+		RTC_SetCounter(RTC_GetRTC_Counter());
 		
 		Delay_us(100000);
 		RTC_ITConfig(RTC_IT_SEC, ENABLE);      // разрешить прерывание по секунде
 		RTC_ClearITPendingBit(RTC_IT_SEC);     // на всякий случай сбросим флаг
-		RTC_SetCounter(RTC_GetRTC_Counter());
+
 		NVIC_InitTypeDef NVIC_InitStruct;
 		NVIC_InitStruct.NVIC_IRQChannel = RTC_IRQn;
 		NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = NVIC_RTC_PRIORITY;

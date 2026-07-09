@@ -75,6 +75,7 @@ uint8_t Check_keypad_pressed(const uint16_t *row_pins, const uint16_t *col_pins)
                         // Дребезг прошел. Возвращаем код клавиши, если она еще не считана.
                         if (last_key != keys_state[row][col].key_value) {
                             last_key = keys_state[row][col].key_value;
+														while (!GPIO_ReadInputDataBit(KEYPAD_GPIO, col_pins[col])) {}
                             return last_key;
                         }
                     }
@@ -94,6 +95,64 @@ uint8_t Check_keypad_pressed(const uint16_t *row_pins, const uint16_t *col_pins)
     }
 
     // Если ни одна клавиша не готова к возврату, сбрасываем last_key
+    last_key = NO_KEY;
+    return NO_KEY;
+}
+
+
+static uint8_t Check_keypad_pressed1(
+    const uint16_t *row_pins,
+    const uint16_t *col_pins)
+{
+	static uint8_t last_key = NO_KEY;
+    // 1. Проходим по всем клавишам
+    for (int row = 0; row < ROWS; ++row)
+    {
+        // Активируем строку (остальные подтягиваются pull-up)
+        GPIO_ResetBits(KEYPAD_GPIO, row_pins[row]);
+        
+        for (int col = 0; col < COLS; ++col)
+        {
+            // Читаем физическое состояние
+            uint8_t pressed_now = !GPIO_ReadInputDataBit(KEYPAD_GPIO, col_pins[col]);
+						
+					volatile Key_state *state = &keys_state[row][col];//???
+            // 2. Обработка нажатия
+            if (pressed_now == Bit_RESET)
+            {
+                
+                
+                // Первый клик: начинаем отсчет дебоя
+                if (!state->is_pressed)
+                {
+                    state->is_pressed = 1;
+                    state->press_time = timer2_cur_time_ms;
+                }
+                else
+                {
+                    // Дебой пройден?
+                    if ((timer2_cur_time_ms - state->press_time) >= KEYPAD_DEBOUNCE_TIME_MS)
+                    {
+                        // Уже отправили? (Анти-спам)
+                        if (last_key != state->key_value)
+                        {
+                            last_key = state->key_value;
+                            return last_key;
+                        }
+                    }
+                }
+            }
+            // 3. Обработка отпускания
+            else if (state->is_pressed)
+            {
+                // Сбрасываем только внутренний флаг
+                state->is_pressed = 0;
+            }
+        }
+    }
+
+    // 4. Сброс "последней клавиши" делаем только здесь
+    // Если мы дошли сюда, значит, активных клавиш нет
     last_key = NO_KEY;
     return NO_KEY;
 }
