@@ -14,15 +14,6 @@ uint8_t keys[ROWS][COLS] = {
 
 volatile Key_state keys_state[ROWS][COLS];
 
-
-
-
-
-
-//volatile uint8_t symbol_index = 0;
-
-
-
 void Input_time(uint8_t *time, const uint8_t pressed_key)
 {
 		if (pressed_key != NO_KEY && pressed_key >= 0x30 && pressed_key < 0x40)

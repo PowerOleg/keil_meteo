@@ -118,12 +118,11 @@ void Set_up_time_and_date(uint8_t *time, uint8_t *date)
 						
 		if (symbol_index > 14)
 		{
-
-				uint8_t hours = (time[0] * 10) + time[1];//(uint8_t)strtol((const char *)&time[0], NULL, 10);// 
-				uint8_t minutes = (time[3] * 10) + time[4];//(uint8_t)strtol((const char *)&time[3], NULL, 10);//(time[3] * 10) + time[4];
-				uint8_t day = (date[0] * 10) + date[1]; //(uint8_t)strtol(&date_char[0], NULL, 10);
-				uint8_t month = (date[3] * 10) + date[4]; //(uint8_t)strtol(&date_char[3], NULL, 10);
-				uint16_t year = (uint16_t)(date[6] * 1000) + (uint16_t)(date[7] * 100) + (uint16_t)(date[8] * 10) + date[9];//(uint16_t)strtol((const char *)&date[6], NULL, 10);//(date[6] - '0') * 1000 + (date[7] - '0') * 100 + (date[8] - '0') * 10 + (date[9] - '0');
+				uint8_t hours = (time[0] * 10) + time[1]; 
+				uint8_t minutes = (time[3] * 10) + time[4];
+				uint8_t day = (date[0] * 10) + date[1];
+				uint8_t month = (date[3] * 10) + date[4];
+				uint16_t year = (uint16_t)(date[6] * 1000) + (uint16_t)(date[7] * 100) + (uint16_t)(date[8] * 10) + date[9];
 
 				RTC_init_lse(year, month, day, hours, minutes, 0);
 				cur_action = TIME;
@@ -215,8 +214,8 @@ int main(void)
 				if (tim3_10sec_flag)
 				{
 						tim3_10sec_flag = 0;
-						BME280_Measure(&raw_data);
-						BME280_Compensate(&raw_data, &bmp280_result);
+						BME280_measure(&raw_data);
+						BME280_compensate(&raw_data, &bmp280_result);
 				}
 					
 				pressed_key = Check_keypad_pressed(row_pins, col_pins);

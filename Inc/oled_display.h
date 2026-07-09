@@ -3,14 +3,12 @@
 
 #include "common.h"
 
-
 #define OLED_WIDTH  128
 #define OLED_HEIGHT 64
 #define OLED_BUFSIZE (OLED_WIDTH * OLED_HEIGHT / 8)
 #define COL_PX 5
 #define ROW_PX 7
 
-//OLED GPIO PA5(SCK),  PA7(MOSI), CS (PA11), DC (PA9), RES (PA10)
 #define OLED_CS_LOW()    			GPIO_ResetBits(GPIOA, GPIO_Pin_11)
 #define OLED_CS_HIGH()   			GPIO_SetBits(GPIOA, GPIO_Pin_11)
 #define OLED_DC_COMMAND()			GPIO_ResetBits(GPIOA, GPIO_Pin_9)
@@ -20,8 +18,7 @@
 
 
 //Битовые маски символов (5x7)
-// Цифры 0..9
-extern const uint8_t digit_font_5x7[10][COL_PX];
+extern const uint8_t digit_font_5x7[10][COL_PX];// Цифры 0..9
 extern const uint8_t colon_5x7[COL_PX];// Двоеточие
 extern const uint8_t minus_5x7[COL_PX];// Минус
 extern const uint8_t dot_5x7[COL_PX];// Точка
@@ -58,19 +55,12 @@ extern const uint8_t letter_I_cap_5x7[5];
 extern const uint8_t letter_U_cap_5x7[5];
 extern const uint8_t slash_5x7[5];
 
-
-
-
-
-
-
 void Oled_gpio_init(void);
 void Oled_spi_init(void);
 void OLED_Reset(void);
 void OLED_WriteByte(uint8_t data, uint8_t dc);
 void OLED_Init_SSD1306(void);
 
-//functions for working with the display buffer
 void OLED_ClearBuffer(void);
 void OLED_SetPixel(uint8_t x, uint8_t y, uint8_t color);
 void OLED_UpdateScreen(void);

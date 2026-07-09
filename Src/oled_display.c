@@ -52,29 +52,6 @@ const uint8_t digit_font_5x7[10][5] = {
     {0x06, 0x49, 0x49, 0x29, 0x1E}  // 9
 };
 
-
-
-void Oled_spi_init(void)
-{
-    SPI_InitTypeDef SPI_InitStructure;
-    
-    // Отключаем SPI перед настройкой
-    SPI_Cmd(SPI1, DISABLE);
-    
-    SPI_InitStructure.SPI_Direction = SPI_Direction_1Line_Tx; // Только передача, MISO не используется
-    SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
-    SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;
-    SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;   // SSD1306: CPOL=1, CPHA=1 (режим 3)
-    SPI_InitStructure.SPI_CPHA = SPI_CPHA_2Edge;
-    SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;     // Программное управление CS
-    SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8; // Тактовая SPI ? 10 МГц (APB2=72МГц > 9 МГц)
-    SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
-    SPI_InitStructure.SPI_CRCPolynomial = 7;
-    SPI_Init(SPI1, &SPI_InitStructure);
-    
-    SPI_Cmd(SPI1, ENABLE);
-}
-
 void Oled_gpio_init(void)
 {
 	// Управляющие пины OLED (PA9, PA10, PA11)
@@ -88,52 +65,7 @@ void Oled_gpio_init(void)
     OLED_CS_HIGH();
     OLED_DC_COMMAND();
     OLED_RES_HIGH();
-	
-	
-    /*GPIO_InitTypeDef GPIO_InitStructure;
-    
-    // Включаем тактирование портов и SPI1
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC | RCC_APB2Periph_SPI1, ENABLE);
-    
-    // SCK (PA5) и MOSI (PA7) — альтернативная функция push-pull
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5 | GPIO_Pin_7;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOA, &GPIO_InitStructure);
-    
-    // CS (PA11), DC (PA9), RES (PA10)//было CS (PC14), DC (PA0), RES (PC15) — выходы push-pull
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9 | GPIO_Pin_10 | GPIO_Pin_11;  //CS (PA11), DC (PA9), RES (PA10)
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOA, &GPIO_InitStructure);
-    
-    // Начальные уровни: CS высокий (не активен), DC низкий, RES высокий
-    OLED_CS_HIGH();//GPIO_SetBits(GPIOA, GPIO_Pin_4);   // CS = 1
-    OLED_DC_COMMAND();//GPIO_ResetBits(GPIOB, GPIO_Pin_1); // DC = 0
-    OLED_RES_HIGH();   // RES = 1*/
 }
-
-/*
-void Oled_send_data(uint8_t data)
-{
-    OLED_DC_DATA(); // Устанавливаем линию DC в состояние DATA
-    OLED_CS_LOW(); // Опускаем CS
-    SPI_I2S_SendData(SPI1, data);
-    while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);
-    OLED_CS_HIGH(); // Обязательно поднимаем CS обратно!
-}
-
-// Отправляет команду
-void Oled_send_command(uint8_t command)
-{
-    OLED_DC_COMMAND(); // Устанавливаем линию DC в состояние COMMAND
-    OLED_CS_LOW(); // Опускаем CS
-    SPI_I2S_SendData(SPI1, command);
-    while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);
-    OLED_CS_HIGH(); // Поднимаем CS
-		Delay_us(1000);
-}*/
-
 
 void OLED_Reset(void)
 {
@@ -143,115 +75,37 @@ void OLED_Reset(void)
     Delay_us(10000);
 }
 
-
-
 void OLED_Init_SSD1306(void)
 {
     OLED_Reset(); // аппаратный сброс
-
     OLED_WriteByte(0xAE, 0); // Выключить дисплей
-
     OLED_WriteByte(0xD5, 0); // Установить делитель тактовой частоты
     OLED_WriteByte(0x80, 0); // Стандартное значение
-
     OLED_WriteByte(0xA8, 0); // Мультиплексирование (высота)
     OLED_WriteByte(0x3F, 0); // 64 строки (0x3F = 63d, т.е. 64 строки)
-
     OLED_WriteByte(0xD3, 0); // Сдвиг отображения
     OLED_WriteByte(0x00, 0); // Без сдвига
-
     OLED_WriteByte(0x40, 0); // Начальная строка отображения (0x40 – обычно 0)
-
     OLED_WriteByte(0x8D, 0); // Накачка заряда (Charge Pump)
     OLED_WriteByte(0x14, 0); // Включить (если внешнее питание, 0x10 отключить)
-
     OLED_WriteByte(0x20, 0); // Режим адресации памяти
     OLED_WriteByte(0x00, 0); // Горизонтальный режим (или 0x02 – страничный, для простоты возьмём страничный 0x02)
-
     OLED_WriteByte(0xA1, 0); // Направление сегментов (0xA0 или 0xA1 – зеркалирование)
     OLED_WriteByte(0xC8, 0); // Направление COM-выходов (0xC0 или 0xC8 – переворот)
-
     OLED_WriteByte(0xDA, 0); // Конфигурация выводов COM
     OLED_WriteByte(0x12, 0); // Для 128x64
-
     OLED_WriteByte(0x81, 0); // Контраст
     OLED_WriteByte(0xCF, 0); // Значение по умолчанию
-
     OLED_WriteByte(0xD9, 0); // Предзаряд
     OLED_WriteByte(0xF1, 0); 
-
     OLED_WriteByte(0xDB, 0); // VCOMH
     OLED_WriteByte(0x40, 0);
-
     OLED_WriteByte(0xA4, 0); // Режим "все пиксели выкл" (0xA4 – нормальный, 0xA5 – все вкл)
-
     OLED_WriteByte(0xA6, 0); // Не инвертировать (0xA6 – нормальный, 0xA7 – инверсный)
-
     OLED_WriteByte(0x2E, 0); // Остановить скроллинг
-
     OLED_WriteByte(0xAF, 0); // Включить дисплей
 
 }
-
-/*
-
-// Залить экран байтом (0x00 – очистить, 0xFF – полностью зажечь)
-void OLED_Fill(uint8_t data)
-{
-    for (uint8_t page = 0; page < 8; page++) {
-        OLED_SetPos(page, 0);
-        for (uint16_t col = 0; col < 128; col++) {
-            OLED_WriteByte(data, 1); // посылаем данные
-        }
-    }
-}
-void OLED_Clear(void)
-{
-    OLED_Fill(0x00);
-}
-void GetCharBitmap(char c, uint8_t *bitmap)
-{
-    // Заполняем bitmap пятью байтами
-    switch(c) {
-        case 'H': memcpy(bitmap, (uint8_t[]){0x7F,0x08,0x08,0x08,0x7F}, 5); break;
-        case 'e': memcpy(bitmap, (uint8_t[]){0x38,0x54,0x54,0x54,0x18}, 5); break;
-        case 'l': memcpy(bitmap, (uint8_t[]){0x00,0x41,0x7F,0x40,0x00}, 5); break;
-        case 'o': memcpy(bitmap, (uint8_t[]){0x38,0x44,0x44,0x44,0x38}, 5); break;
-        default:  memset(bitmap, 0, 5); break; // пробел или неизвестный
-    }
-}
-
-// Вывод одного символа в позиции (page, col)
-void OLED_DrawChar(uint8_t page, uint8_t col, char c)
-{
-    uint8_t bitmap[5];
-    GetCharBitmap(c, bitmap);
-    OLED_SetPos(page, col);
-    for (uint8_t i = 0; i < 5; i++) {
-        OLED_WriteByte(bitmap[i], 1); // данные
-    }
-    // Пустой столбец-разделитель
-    OLED_WriteByte(0x00, 1);
-}
-
-// Печать строки. Перенос на следующую страницу при выходе за границу.
-void OLED_PrintString(uint8_t page, uint8_t col, const char *str)
-{
-    while (*str)
-		{
-        if (col > 127 - 5) {   // не влезает
-            col = 0;
-            page++;
-            if (page > 7) return; // за пределом экрана
-        }
-        OLED_DrawChar(page, col, *str);
-        col += 6;              // 5 пикс. символа + 1 пробел
-        str++;
-    }
-}*/
-
-
-//functions for working with the display buffer
 
 static uint8_t Get_dozens(const uint8_t number)
 {
@@ -341,22 +195,22 @@ void OLED_DrawPercent15x21(uint8_t x, uint8_t y)
 {
 	 // Страница 0 (строки 0..7)
     OLED_SetPos(y, x);
-    const uint8_t page0[15] = {								// кружок (строки 1-5 cols 0-4)
-        0x0E, 0x11, 0x11, 0x11, 0x0E,         0x00, 0x00, 0x00, 0x00, 0x00,         0x00, 0x00, 0x40, 0x20, 0x10 // col5: бит 5 (строка 5) – начало линии
+    const uint8_t page0[15] = {
+        0x0E, 0x11, 0x11, 0x11, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x20, 0x10
     };
     for (int i = 0; i < 15; i++) OLED_WriteByte(page0[i], 1);
 
     // Страница 1 (строки 8..15)
     OLED_SetPos(y + 1, x);
-    const uint8_t page1[15] = {						// col6: бит6, col7: бит5, col8: бит4, col9: бит3 (диагональ)
-        0x00, 0x00, 0x00, 0x00, 0x40,        0x20, 0x10, 0x08, 0x04, 0x02,        0x01, 0x00, 0x00, 0x00, 0x00  // col10: бит2 (строка 10)
+    const uint8_t page1[15] = {
+        0x00, 0x00, 0x00, 0x00, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00
     };
     for (int i = 0; i < 15; i++) OLED_WriteByte(page1[i], 1);
 
     // Страница 2 (строки 16..23)
     OLED_SetPos(y + 2, x);
-    const uint8_t page2[15] = {								// col9: бит1 (строка 17)
-        0x08, 0x04, 0x02, 0x01, 0x00,        0x00, 0x00, 0x00, 0x00, 0x00,        0x70, 0x88, 0x88, 0x88, 0x70  // кружок cols 10-14: строки 16-20, плюс бит0 col10=1 для соединения
+    const uint8_t page2[15] = {
+        0x08, 0x04, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x70, 0x88, 0x88, 0x88, 0x70
     };
     for (int i = 0; i < 15; i++) OLED_WriteByte(page2[i], 1);
 	}
@@ -537,7 +391,6 @@ void OLED_PrintHumidity(uint8_t x, uint8_t y, float humidity, uint8_t scale, con
     // Вывод строки
     OLED_PrintScaledSymbols(x, y, font_table, indices, cnt, scale);
 }
-
 
 void OLED_PrintPressure(/*uint8_t x, */uint8_t y, uint32_t pressure, uint8_t scale, const uint8_t **font_table)
 {

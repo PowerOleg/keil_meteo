@@ -42,7 +42,7 @@ void BME280_gpio_init(void)
 
 
 // Отправить/принять байт по SPI
-uint8_t SPI_Transfer(uint8_t data)
+uint8_t SPI_transfer(uint8_t data)
 {
     while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);
     SPI_I2S_SendData(SPI1, data);
@@ -51,40 +51,40 @@ uint8_t SPI_Transfer(uint8_t data)
 }
 
 // Чтение одного байта из регистра
-uint8_t BME280_ReadByte(uint8_t reg)
+uint8_t BME280_read_byte(uint8_t reg)
 {
     uint8_t val;
     CS_LOW();
-    SPI_Transfer(reg | 0x80);   // установка бита 7 – операция чтения
-    val = SPI_Transfer(0xFF);   // фиктивный байт для выталкивания ответа
+    SPI_transfer(reg | 0x80);   // установка бита 7 – операция чтения
+    val = SPI_transfer(0xFF);   // фиктивный байт для выталкивания ответа
     CS_HIGH();
     return val;
 }
 
 // Запись одного байта в регистр (используется редко, у вас была Write2Bytes)
 // Для универсальности оставим однобайтную запись
-void BME280_WriteByteInReg(uint8_t reg, uint8_t data)
+void BME280_write_byte_in_reg(uint8_t reg, uint8_t data)
 {
     CS_LOW();
-    SPI_Transfer(reg & 0x7F);   // сброс бита 7 – операция записи
-    SPI_Transfer(data);
+    SPI_transfer(reg & 0x7F);   // сброс бита 7 – операция записи
+    SPI_transfer(data);
     CS_HIGH();
 }
 
 // Чтение нескольких байт подряд (начиная с reg, автоинкремент)
-void BME280_ReadBytes(uint8_t reg, uint8_t *data, uint8_t len)
+void BME280_read_bytes(uint8_t reg, uint8_t *data, uint8_t len)
 {
     CS_LOW();
-    SPI_Transfer(reg | 0x80);
+    SPI_transfer(reg | 0x80);
     for (uint8_t i = 0; i < len; i++)
-        data[i] = SPI_Transfer(0xFF);
+        data[i] = SPI_transfer(0xFF);
     CS_HIGH();
 }
 
 uint8_t BME280_init(void)
 {
 	// Шаг 1: Проверка Chip ID
-    uint8_t chip_id = BME280_ReadByte(BME280_REG_ID);// должно вернуть 0x60
+    uint8_t chip_id = BME280_read_byte(BME280_REG_ID);// должно вернуть 0x60
 
     if (chip_id != BME280_CHIP_ID)
 		{
@@ -92,56 +92,56 @@ uint8_t BME280_init(void)
     }
 		Delay_us(50000);
     // Шаг 2: Настройка режимов (нормальный режим, oversampling)
-    BME280_WriteByteInReg(BME280_REG_CTRL_MEAS, 0x27); // temp: x2, press: x16, normal mode
+    BME280_write_byte_in_reg(BME280_REG_CTRL_MEAS, 0x27); // temp: x2, press: x16, normal mode
 		Delay_us(100000);
     // Шаг 3: Чтение калибровочных данных
-    BME280_ReadCalibrationData();
+    BME280_read_calibration_data();
 
     return 0; // Успех
 }
 
-void BME280_ReadCalibrationData(void)
+void BME280_read_calibration_data(void)
 {
     // Чтение коэффициентов температуры
-    dig_T1 = (uint16_t)(BME280_ReadByte(0x88) | (BME280_ReadByte(0x89) << 8));
-    dig_T2 = (int16_t)(BME280_ReadByte(0x8A) | (BME280_ReadByte(0x8B) << 8));
-    dig_T3 = (int16_t)(BME280_ReadByte(0x8C) | (BME280_ReadByte(0x8D) << 8));
+    dig_T1 = (uint16_t)(BME280_read_byte(0x88) | (BME280_read_byte(0x89) << 8));
+    dig_T2 = (int16_t)(BME280_read_byte(0x8A) | (BME280_read_byte(0x8B) << 8));
+    dig_T3 = (int16_t)(BME280_read_byte(0x8C) | (BME280_read_byte(0x8D) << 8));
 
     // Чтение коэффициентов давления
-    dig_P1 = (uint16_t)(BME280_ReadByte(0x8E) | (BME280_ReadByte(0x8F) << 8));
-    dig_P2 = (int16_t)(BME280_ReadByte(0x90) | (BME280_ReadByte(0x91) << 8));
-    dig_P3 = (int16_t)(BME280_ReadByte(0x92) | (BME280_ReadByte(0x93) << 8));
-    dig_P4 = (int16_t)(BME280_ReadByte(0x94) | (BME280_ReadByte(0x95) << 8));
-    dig_P5 = (int16_t)(BME280_ReadByte(0x96) | (BME280_ReadByte(0x97) << 8));
-    dig_P6 = (int16_t)(BME280_ReadByte(0x98) | (BME280_ReadByte(0x99) << 8));
-    dig_P7 = (int16_t)(BME280_ReadByte(0x9A) | (BME280_ReadByte(0x9B) << 8));
-    dig_P8 = (int16_t)(BME280_ReadByte(0x9C) | (BME280_ReadByte(0x9D) << 8));
-    dig_P9 = (int16_t)(BME280_ReadByte(0x9E) | (BME280_ReadByte(0x9F) << 8));
+    dig_P1 = (uint16_t)(BME280_read_byte(0x8E) | (BME280_read_byte(0x8F) << 8));
+    dig_P2 = (int16_t)(BME280_read_byte(0x90) | (BME280_read_byte(0x91) << 8));
+    dig_P3 = (int16_t)(BME280_read_byte(0x92) | (BME280_read_byte(0x93) << 8));
+    dig_P4 = (int16_t)(BME280_read_byte(0x94) | (BME280_read_byte(0x95) << 8));
+    dig_P5 = (int16_t)(BME280_read_byte(0x96) | (BME280_read_byte(0x97) << 8));
+    dig_P6 = (int16_t)(BME280_read_byte(0x98) | (BME280_read_byte(0x99) << 8));
+    dig_P7 = (int16_t)(BME280_read_byte(0x9A) | (BME280_read_byte(0x9B) << 8));
+    dig_P8 = (int16_t)(BME280_read_byte(0x9C) | (BME280_read_byte(0x9D) << 8));
+    dig_P9 = (int16_t)(BME280_read_byte(0x9E) | (BME280_read_byte(0x9F) << 8));
 	
 		// --- Влажность ---
     // Читаем первый коэффициент
-    dig_H1 = BME280_ReadByte(0xA1);
+    dig_H1 = BME280_read_byte(0xA1);
     
     // Читаем блок коэффициентов во второй области памяти
-    dig_H2 = (int16_t)(BME280_ReadByte(0xE1) | (BME280_ReadByte(0xE2) << 8)); // E1-E2
-    dig_H3 = BME280_ReadByte(0xE3);
+    dig_H2 = (int16_t)(BME280_read_byte(0xE1) | (BME280_read_byte(0xE2) << 8)); // E1-E2
+    dig_H3 = BME280_read_byte(0xE3);
 
     // Сложная сборка для dig_H4 и dig_H5
-    int16_t h4_lsb = BME280_ReadByte(0xE4);
-    int16_t h5_msb = BME280_ReadByte(0xE5);
-    uint8_t h4_h5_shared = BME280_ReadByte(0xE6); // Этот байт содержит старшие биты H4 и младшие биты H5
+    int16_t h4_lsb = BME280_read_byte(0xE4);
+    int16_t h5_msb = BME280_read_byte(0xE5);
+    uint8_t h4_h5_shared = BME280_read_byte(0xE6); // Этот байт содержит старшие биты H4 и младшие биты H5
 
     dig_H4 = (h4_lsb << 4) | (h4_h5_shared & 0x0F); // Берем младшие 4 бита из регистра E6
     dig_H5 = (h5_msb << 4) | (h4_h5_shared >> 4);   // Берем старшие 4 бита из регистра E6
 
-    dig_H6 = (int8_t)BME280_ReadByte(0xE7);
+    dig_H6 = (int8_t)BME280_read_byte(0xE7);
 }
 
 void BMP280_ReadBytes(uint8_t reg, uint8_t *buffer, uint8_t len)
 {
 		for (int i = 0; i < len; i++)
 		{
-				buffer[i] = BME280_ReadByte(reg++);
+				buffer[i] = BME280_read_byte(reg++);
 		}
 		
 
@@ -149,7 +149,7 @@ void BMP280_ReadBytes(uint8_t reg, uint8_t *buffer, uint8_t len)
 
 
 // Запуск измерения и чтение сырых значений
-void BME280_Measure(BME280_RawData_t *raw)
+void BME280_measure(BME280_RawData_t *raw)
 {
     // Запись CTRL_MEAS уже была сделана в init, но если ты хочешь менять режимы на лету,
     // здесь можно снова записать нужный режим.
@@ -231,7 +231,7 @@ static float BMP280_compensate_H_int32(int32_t adc_H, int32_t t_fine)
 		return var_H;
 }
 
-void BME280_Compensate(BME280_RawData_t *raw, BME280_Result_t *result)
+void BME280_compensate(BME280_RawData_t *raw, BME280_Result_t *result)
 {
 		int32_t var1, var2;
     int32_t adc_T = (int32_t)raw->raw_temperature;

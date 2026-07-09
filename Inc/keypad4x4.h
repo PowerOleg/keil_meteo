@@ -1,14 +1,13 @@
 #ifndef __KEYPAD4X4_H
 #define __KEYPAD4X4_H
 
-#include "stm32f10x.h"                  // Device header
+#include "stm32f10x.h"
 #include "timer.h"
 
 #define TIME_SIZE 5
 
 #define KEYPAD_DEBOUNCE_TIME_MS 40
 #define NO_KEY 									0xFF // Константа для обозначения отсутствия нажатия
-// Определяем количество строк и столбцов
 #define ROWS 										4 // Четыре строки
 #define COLS 										4 // Четыре столбца
 #define KEYPAD_GPIO 						GPIOB
