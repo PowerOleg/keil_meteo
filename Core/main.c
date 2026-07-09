@@ -1,13 +1,10 @@
 #include <string.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
 #include "common.h"
 #include "hw_config.h"
 #include "rtc_functions.h"
 #include "led.h"
 #include "uart.h"
-#include "lcd1602.h"
 #include "oled_display.h"
 #include "timer.h"
 #include "bme280.h"
@@ -69,14 +66,11 @@ const uint8_t temperature_indices[] = {19, 21, 22, 24, 26, 18, 25, 10};
 const uint8_t humidity_indices[] = {20, 27, 25, 28, 29, 30, 14, 19, 31, 10};
 // Индексы: Д(32), А(25), В(20), Л(27), Е(21), Н(29), И(33), Е(21), :(10)
 const uint8_t pressure_indices[] = {32, 25, 20, 27, 21, 29, 33, 21, 10};
-
 // Индексы: В(20), В(20), Е(21), Д(32), И(33), Т(19), Е(21) 
 const uint8_t init_message_line0[] = {20, 20, 21, 32, 33, 19, 21, 35};
 // Д(32), А(25), Т(19), У(34), пробел(35), В(20), Р(18), Е(21), M(22), Я(23)
 //const uint8_t init_message_line1[] = {32, 25, 19, 34, 36, 20, 18, 21, 22, 23, 10};
 const uint8_t init_message_line1[] = {20, 18, 21, 22, 23};
-
-//const uint8_t init_message_line1[] = {32, 25, 19, 34, 36, 20, 18, 21, 22, 23, 10};
 // Д(32), А(25), Т(19), У(34),
 const uint8_t init_message_line2[] = {32, 25, 19, 34};
 
@@ -84,7 +78,6 @@ volatile uint8_t initial_set_up = 1;
 volatile uint8_t pressed_key = 0;
 uint8_t time_indices[] = {0, 0, 10, 0, 0};// время в формате: 12:34
 
-volatile uint8_t lcd_cycle_count = 31;
 Led led_a8;
 Led led_c13;
 
@@ -132,11 +125,6 @@ void Set_up_time_and_date(uint8_t *time, uint8_t *date)
 				uint8_t month = (date[3] * 10) + date[4]; //(uint8_t)strtol(&date_char[3], NULL, 10);
 				uint16_t year = (uint16_t)(date[6] * 1000) + (uint16_t)(date[7] * 100) + (uint16_t)(date[8] * 10) + date[9];//(uint16_t)strtol((const char *)&date[6], NULL, 10);//(date[6] - '0') * 1000 + (date[7] - '0') * 100 + (date[8] - '0') * 10 + (date[9] - '0');
 
-/*				uint8_t hours = 0x0B;
-				uint8_t minutes = 0x0B;
-				uint8_t day = 0x15;
-				uint8_t month = 0x0B;
-				uint16_t year = 0x7D9;*/
 				RTC_init_lse(year, month, day, hours, minutes, 0);
 				cur_action = TIME;
 				initial_set_up = 0;
@@ -194,7 +182,7 @@ int main(void)
 
 		
 		//BME280
-		SPI_Clear_RXNE();
+		SPI_clear_rxne();
 		BME280_init();
 		BME280_RawData_t raw_data;
 		BME280_Result_t bmp280_result;
@@ -223,7 +211,7 @@ int main(void)
 						continue;
 				}
 				
-				//BME280
+				//every 10 sec gets measure from BME280
 				if (tim3_10sec_flag)
 				{
 						tim3_10sec_flag = 0;

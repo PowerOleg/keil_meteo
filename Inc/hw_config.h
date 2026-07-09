@@ -5,15 +5,11 @@
 
 #define RTC_PRESCALER  0x7FFF//32767 = 0x7FFF//39999 = 0x9C3F
 
-void I2C1_gpio_init(void);
-void I2C1_Init(void);
-//void I2C_dma_init(void);
-//void I2C_send_data_by_DMA(uint8_t* buffer, uint16_t size);
 void SPI1_gpio_init(void);
 void SPI1_common_init(void);
 void SPI1_init(void);
 void SPI1_common_gpio_init(void);
-void SPI_Clear_RXNE(void);
+void SPI_clear_rxne(void);
 
 uint8_t Clock_config_72mhz(void);
 void RTC_init_lse(const uint16_t y, const uint8_t m, const uint8_t d, const uint8_t h, const uint8_t min, const uint8_t s);

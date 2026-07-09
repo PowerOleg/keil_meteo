@@ -72,8 +72,6 @@ void RTC_init_lse(const uint16_t y, const uint8_t m, const uint8_t d, const uint
 		NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0;
 		NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
 		NVIC_Init(&NVIC_InitStruct);
-
-
 }
 
 uint8_t RTC_init_lsi(void)
@@ -113,21 +111,6 @@ uint8_t RTC_init_lsi(void)
 
     return ERROR;
 }
-/*
-void RTC_init_lsi(void) {
-    PWR_BackupAccessCmd(ENABLE);
-    RCC_BackupResetCmd(ENABLE);
-    RCC_BackupResetCmd(DISABLE);
-
-    RCC_LSICmd(ENABLE);
-    while ((RCC->CSR & RCC_CSR_LSIRDY) == 0);
-
-    RCC_RTCCLKConfig(RCC_RTCCLKSource_LSI);
-    RCC_RTCCLKCmd(ENABLE);
-    RTC_WaitForSynchro();
-
-    RTC_SetPrescaler(39999);  // 40 кГц -> 1 Гц
-}*/
 
 void SPI1_common_init(void)
 {
@@ -165,7 +148,7 @@ void SPI1_common_gpio_init(void)
 }
 
 //to clear any transmitted data of last transmission
-void SPI_Clear_RXNE(void)
+void SPI_clear_rxne(void)
 {
 		while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE) == SET)
     SPI_I2S_ReceiveData(SPI1);
@@ -211,39 +194,7 @@ void SPI1_gpio_init(void)
     gpio.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_Init(GPIOA, &gpio);
     GPIO_SetBits(GPIOA, GPIO_Pin_4);  // CS = 1 (неактивен)
-
 }
-
-
-void I2C1_gpio_init(void)
-{
-		GPIO_InitTypeDef GPIO_InitStruct = {0};
-    RCC_APB2PeriphClockCmd(I2C1_GPIO_CLK, ENABLE);
-    GPIO_InitStruct.GPIO_Pin = I2C1_PIN_SCL | I2C1_PIN_SDA;
-    GPIO_InitStruct.GPIO_Mode = I2C1_GPIO_MODE;
-    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(I2C1_GPIO, &GPIO_InitStruct);
-}
-
-void I2C1_Init(void)
-{
-    I2C_InitTypeDef I2C_InitStructure = {0};
-    RCC_APB1PeriphClockCmd(I2C1_RCC_CLK, ENABLE);// 1. Включаем тактирование самого модуля I2C_PERIPH_NUM (шина APB1)
-		Delay_us(10000);
-    I2C_DeInit(I2C1);
-
-    I2C_InitStructure.I2C_ClockSpeed = 100000;               // Стандартный режим: 100 кГц
-    I2C_InitStructure.I2C_Mode = I2C_Mode_I2C;
-    I2C_InitStructure.I2C_DutyCycle = I2C_DutyCycle_2;       // Соответствует стандартному режиму
-    I2C_InitStructure.I2C_OwnAddress1 = 0x00;                // Пример адреса устройства (если оно ведомое)
-    I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;             // Разрешаем подтверждение ACK
-    I2C_InitStructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
-    I2C_Init(I2C1, &I2C_InitStructure);
-		Delay_us(10000);
-    I2C_Cmd(I2C1, ENABLE);
-}
-
-
 
 void Init_systick_us(void)
 {
@@ -256,57 +207,56 @@ void Init_systick_us(void)
 
 void Init_pina9_button(void)
 {
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_AFIO, ENABLE);
-	GPIO_InitTypeDef pina9 = {0};
-	pina9.GPIO_Pin = GPIO_Pin_9;
-	pina9.GPIO_Mode = GPIO_Mode_IPU;
-	GPIO_Init(GPIOA, &pina9); 
-	
-	GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource9);// Подключаем линию EXTI9 к порту PA9
-	
-	EXTI_InitTypeDef exti_line9;
-    exti_line9.EXTI_Line = EXTI_Line9; // Указываем конкретную линию
-    exti_line9.EXTI_Mode = EXTI_Mode_Interrupt;
-    exti_line9.EXTI_Trigger = EXTI_Trigger_Falling; // Срабатываем по нажатию (0V)
-    exti_line9.EXTI_LineCmd = ENABLE;
-    EXTI_Init(&exti_line9);
-	
-	NVIC_InitTypeDef nvic_button_9;
-    nvic_button_9.NVIC_IRQChannel = EXTI9_5_IRQn;
-    nvic_button_9.NVIC_IRQChannelPreemptionPriority = NVIC_BUTTON_PRIORITY;
-    nvic_button_9.NVIC_IRQChannelSubPriority = 0;
-    nvic_button_9.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&nvic_button_9);
-
+		RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_AFIO, ENABLE);
+		GPIO_InitTypeDef pina9 = {0};
+		pina9.GPIO_Pin = GPIO_Pin_9;
+		pina9.GPIO_Mode = GPIO_Mode_IPU;
+		GPIO_Init(GPIOA, &pina9); 
+		
+		GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource9);// Подключаем линию EXTI9 к порту PA9
+		
+		EXTI_InitTypeDef exti_line9;
+			exti_line9.EXTI_Line = EXTI_Line9; // Указываем конкретную линию
+			exti_line9.EXTI_Mode = EXTI_Mode_Interrupt;
+			exti_line9.EXTI_Trigger = EXTI_Trigger_Falling; // Срабатываем по нажатию (0V)
+			exti_line9.EXTI_LineCmd = ENABLE;
+			EXTI_Init(&exti_line9);
+		
+		NVIC_InitTypeDef nvic_button_9;
+			nvic_button_9.NVIC_IRQChannel = EXTI9_5_IRQn;
+			nvic_button_9.NVIC_IRQChannelPreemptionPriority = NVIC_BUTTON_PRIORITY;
+			nvic_button_9.NVIC_IRQChannelSubPriority = 0;
+			nvic_button_9.NVIC_IRQChannelCmd = ENABLE;
+			NVIC_Init(&nvic_button_9);
 }
 
 void Init_pinb10_button(void)
 {
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB | RCC_APB2Periph_AFIO, ENABLE);
-	GPIO_InitTypeDef pinb10 = {0};
-	pinb10.GPIO_Pin = GPIO_Pin_10;
-	pinb10.GPIO_Mode = GPIO_Mode_IPU;
-	GPIO_Init(GPIOB, &pinb10); 
-	
-	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource10);
-	
-	EXTI_InitTypeDef exti_line10;
-    exti_line10.EXTI_Line = EXTI_Line10;
-    exti_line10.EXTI_Mode = EXTI_Mode_Interrupt;
-    exti_line10.EXTI_Trigger = EXTI_Trigger_Falling;
-    exti_line10.EXTI_LineCmd = ENABLE;
-    EXTI_Init(&exti_line10);
-	
-	NVIC_InitTypeDef nvic_button_10;
-    nvic_button_10.NVIC_IRQChannel = EXTI15_10_IRQn;
-    nvic_button_10.NVIC_IRQChannelPreemptionPriority = NVIC_BUTTON_PRIORITY;
-    nvic_button_10.NVIC_IRQChannelSubPriority = 0;
-    nvic_button_10.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&nvic_button_10);
+		RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB | RCC_APB2Periph_AFIO, ENABLE);
+		GPIO_InitTypeDef pinb10 = {0};
+		pinb10.GPIO_Pin = GPIO_Pin_10;
+		pinb10.GPIO_Mode = GPIO_Mode_IPU;
+		GPIO_Init(GPIOB, &pinb10); 
+		
+		GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource10);
+		
+		EXTI_InitTypeDef exti_line10;
+			exti_line10.EXTI_Line = EXTI_Line10;
+			exti_line10.EXTI_Mode = EXTI_Mode_Interrupt;
+			exti_line10.EXTI_Trigger = EXTI_Trigger_Falling;
+			exti_line10.EXTI_LineCmd = ENABLE;
+			EXTI_Init(&exti_line10);
+		
+		NVIC_InitTypeDef nvic_button_10;
+			nvic_button_10.NVIC_IRQChannel = EXTI15_10_IRQn;
+			nvic_button_10.NVIC_IRQChannelPreemptionPriority = NVIC_BUTTON_PRIORITY;
+			nvic_button_10.NVIC_IRQChannelSubPriority = 0;
+			nvic_button_10.NVIC_IRQChannelCmd = ENABLE;
+			NVIC_Init(&nvic_button_10);
 }
 
 void Error_handler(void)
 {
-	GPIO_WriteBit(GPIOC, GPIO_Pin_13, Bit_RESET);
-  while(1) {}
+		GPIO_WriteBit(GPIOC, GPIO_Pin_13, Bit_RESET);
+		while(1) {}
 }

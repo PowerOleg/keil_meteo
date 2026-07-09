@@ -70,7 +70,7 @@ void Input_date(uint8_t *date, const uint8_t pressed_key)
 				if (date_index == 8 && date[6] == 1 && date[7] == 9 && key < 8)
 						return;
 				
-				if (date_index == 7 && date[6] == 2 && key > 1)
+				if (date_index == 7 && date[6] == 2 && key != 0)
 						return;
 				if (date_index == 8 && date[6] == 2 && date[7] == 1 && key > 8)
 						return;

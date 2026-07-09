@@ -445,26 +445,6 @@
               <FilePath>.\Src\uart.c</FilePath>
             </File>
             <File>
-              <FileName>dht22.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Inc\dht22.h</FilePath>
-            </File>
-            <File>
-              <FileName>dht22.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Src\dht22.c</FilePath>
-            </File>
-            <File>
-              <FileName>lcd1602.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Inc\lcd1602.h</FilePath>
-            </File>
-            <File>
-              <FileName>lcd1602.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Src\lcd1602.c</FilePath>
-            </File>
-            <File>
               <FileName>timer.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\Inc\timer.h</FilePath>
