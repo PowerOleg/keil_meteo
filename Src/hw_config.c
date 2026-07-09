@@ -53,7 +53,7 @@ void RTC_init_lse(const uint16_t y, const uint8_t m, const uint8_t d, const uint
 				RCC_RTCCLKCmd(ENABLE);
 				RTC_WaitForSynchro();
 		}
-		
+		Delay_us(1000000);
 		currentDateTime.RTC_Year = y;
     currentDateTime.RTC_Month = m;
     currentDateTime.RTC_Day = d;
@@ -62,7 +62,7 @@ void RTC_init_lse(const uint16_t y, const uint8_t m, const uint8_t d, const uint
     currentDateTime.RTC_Seconds = s;
 		RTC_SetCounter(RTC_GetRTC_Counter());
 		
-		Delay_us(100000);
+		Delay_us(400000);
 		RTC_ITConfig(RTC_IT_SEC, ENABLE);      // разрешить прерывание по секунде
 		RTC_ClearITPendingBit(RTC_IT_SEC);     // на всякий случай сбросим флаг
 

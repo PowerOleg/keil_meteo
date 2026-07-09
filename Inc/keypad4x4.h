@@ -4,6 +4,8 @@
 #include "stm32f10x.h"                  // Device header
 #include "timer.h"
 
+#define TIME_SIZE 5
+
 #define KEYPAD_DEBOUNCE_TIME_MS 40
 #define NO_KEY 									0xFF // Константа для обозначения отсутствия нажатия
 // Определяем количество строк и столбцов
@@ -13,6 +15,7 @@
 
 // Создаем массив символов на кнопках
 extern uint8_t keys[ROWS][COLS];
+extern volatile uint8_t symbol_index;
 
 typedef struct {
     uint8_t is_pressed;   // Флаг: 1 - кнопка сейчас считается нажатой
@@ -26,5 +29,7 @@ extern volatile Key_state keys_state[ROWS][COLS];
 void Keypad_init_gpio(const uint16_t *row_pins, const uint16_t *col_pins);
 uint8_t Check_keypad_pressed(const uint16_t *row_pins, const uint16_t *col_pins);
 char Keypad_listen(const uint16_t *row_pins, const uint16_t *col_pins);
+void Input_time(uint8_t *time, const uint8_t pressed_key);
+void Input_date(uint8_t *date, const uint8_t pressed_key);
 
 #endif

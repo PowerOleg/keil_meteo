@@ -22,7 +22,6 @@ uint16_t RTC_Year;
 
 
 extern volatile RTC_DateTimeTypeDef currentDateTime;
-//extern volatile uint32_t RTC_counter;
 
 uint32_t RTC_GetRTC_Counter(void);
 void Set_date_and_time(uint8_t *time, uint8_t *date);

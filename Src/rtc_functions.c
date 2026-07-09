@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 volatile RTC_DateTimeTypeDef currentDateTime;
-//volatile uint32_t RTC_counter = 0;
+
 
 uint32_t RTC_GetRTC_Counter(void)
 {
@@ -116,38 +116,5 @@ void RTC_GetMyFormat(volatile RTC_DateTimeTypeDef* RTC_DateTimeStruct, char *buf
 		RTC_DateTimeStruct->RTC_Day,
 		MONTH[RTC_DateTimeStruct->RTC_Month -1],
 		RTC_DateTimeStruct->RTC_Year);
-}
-
-void RTC_GetDateTimeHenry(uint32_t RTC_counter)
-{
-    uint32_t days, rem;
-    int era, year, month, day, hour, min, sec;
-    
-    // Сначала выделяем время суток (часы/мин/сек), чтобы работать только с днями
-    sec = RTC_counter % 60;
-    RTC_counter /= 60;
-    min = RTC_counter % 60;
-    RTC_counter /= 60;
-    hour = RTC_counter % 24;
-    days = RTC_counter / 24; // Количество дней с 1970 года
-
-    // Алгоритм Хайнриха Сакамото для определения года из количества дней
-    era = (days >= 0 ? days : days - 146096) / 146097;
-    unsigned doe = (unsigned)(days - era * 146097);      // [0, 146096]
-    unsigned yoe = (doe - doe/1460 + doe/36524 - doe/146096) / 365;  // [0, 399]
-    year = yoe + era * 400;
-    unsigned doy = doe - (365*yoe + yoe/4 - yoe/100);                // [0, 365]
-    unsigned mp = (5*doy + 2)/153;                                   // [0, 11]
-    
-    day = doy - (153*mp+2)/5 + 1;          // [1, 31]
-    month = mp + 3 - 12*(mp/10);           // [1, 12]
-    year += (month <= 2);                  // Коррекция года для января/февраля
-
-    currentDateTime.RTC_Year = year;
-    currentDateTime.RTC_Month = month;
-    currentDateTime.RTC_Day = day;
-    currentDateTime.RTC_Hours = hour;
-    currentDateTime.RTC_Minutes = min;
-    currentDateTime.RTC_Seconds = sec;
 }
 

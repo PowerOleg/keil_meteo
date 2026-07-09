@@ -1,5 +1,7 @@
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
 #include "common.h"
 #include "hw_config.h"
 #include "rtc_functions.h"
@@ -8,12 +10,11 @@
 #include "lcd1602.h"
 #include "oled_display.h"
 #include "timer.h"
-//#include "bmp280.h"
 #include "bme280.h"
 #include "keypad4x4.h"
 #include "flash_memory.h"
 
-#define TIME_SIZE 5
+
 #define TIME 0x31
 #define TEMPERATURE 0x32
 #define HUMIDITY 0x33
@@ -80,106 +81,29 @@ const uint8_t init_message_line1[] = {20, 18, 21, 22, 23};
 const uint8_t init_message_line2[] = {32, 25, 19, 34};
 
 volatile uint8_t initial_set_up = 1;
-volatile uint8_t symbol_index = 0;
 volatile uint8_t pressed_key = 0;
-uint8_t time_indices[] = {0, 0, 10, 0, 0};// ВРЕМЯ: 12:34
+uint8_t time_indices[] = {0, 0, 10, 0, 0};// время в формате: 12:34
 
 volatile uint8_t lcd_cycle_count = 31;
 Led led_a8;
 Led led_c13;
-	
-								/*uint8_t hh = 0;
-								uint8_t min = 0;
-								uint8_t ss = 0;
-								uint8_t mmin = 0;
-								uint8_t dday = 0;
-								uint8_t mmonth = 0;
-								uint16_t yyear = 0;*/
 
 void RTC_IRQHandler(void)
 {
     if (RTC_GetITStatus(RTC_IT_SEC) != RESET)
     {
-				RTC_ClearITPendingBit(RTC_IT_SEC);   // сброс флага обязательно!
+				RTC_ClearITPendingBit(RTC_IT_SEC);
         RTC_GetDateTime(RTC_GetCounter());
-				/*RTC_WaitForSynchro();
-        RTC_ClearITPendingBit(RTC_IT_SEC);   // сброс флага обязательно!
-        RTC_counter = RTC_GetCounter();
-        RTC_GetDateTime(RTC_counter, &currentDateTime);
-				hh = currentDateTime.RTC_Hours;
-				min = currentDateTime.RTC_Minutes;*/
     }
 }
 
-void Input_time(uint8_t *time)
-{
-		if (pressed_key != NO_KEY && pressed_key >= 0x30 && pressed_key < 0x40)
-		{
-				if (symbol_index == 0 && pressed_key > 0x32)
-						return;
-				if (symbol_index == 3 && pressed_key > 0x35)
-						return;
-
-				if (symbol_index == 2)
-						symbol_index++;
-				time[symbol_index++] = pressed_key - '0';
-		}
-}
-
-void Input_date(uint8_t *date)
-{
-		if (pressed_key != NO_KEY && pressed_key >= 0x30 && pressed_key < 0x40)
-		{
-			uint8_t key = pressed_key - '0';
-			
-				if (symbol_index == 2 + TIME_SIZE || symbol_index == 5 + TIME_SIZE)
-						symbol_index++;
-				
-				// Проверка корректности введенного числа
-//        bool isValid = true;
-        //int day = (date[0] * 10) + date[1];
-        //int month = (date[3] * 10) + date[4];
-        //int year = (date[6] * 1000) + (date[7] * 100) + (date[8] * 10) + date[9];
-
-				uint8_t date_index = symbol_index - TIME_SIZE;
-        // Проверка диапазона дня
-				if (date_index == 0 && (key < 0 || key > 3))
-            return;
-        if (date_index == 1 && date[0] == 3 && key > 1)
-            return;
-
-				
-				
-        // Проверка диапазона месяца
-        if (date_index == 3 && key > 1)
-            return;
-				if (date_index == 4 && date[3] == 1 && key > 2)
-						return;
-				
-				if (date_index == 6 && (key < 1 || key > 2))
-						return;
-				if (date_index == 7 && date[6] == 1 && key < 9)
-						return;
-				
-				if (date_index == 8 && date[6] == 1 && date[7] == 9 && key < 8)
-						return;
-				
-				if (date_index == 7 && date[6] == 2 && key > 1)
-						return;
-				if (date_index == 8 && date[6] == 2 && date[7] == 1 && key > 8)
-						return;
-
-				date[date_index] = key;
-				symbol_index++;
-		}
-}
 
 void Set_up_time_and_date(uint8_t *time, uint8_t *date)
 {
 		pressed_key = Check_keypad_pressed(row_pins, col_pins);
 		if (symbol_index > 4)
 		{
-				Input_date(date);					
+				Input_date(date, pressed_key);					
 				OLED_ClearBuffer();
 				OLED_PrintScaledSymbols(0, 0, font_table, init_message_line0, 8, 2);
 				OLED_PrintScaledSymbols(0, 15, font_table, init_message_line1, 5, 2);							
@@ -191,7 +115,7 @@ void Set_up_time_and_date(uint8_t *time, uint8_t *date)
 						
 		if (symbol_index >= 0 && symbol_index <= 4)
 		{
-				Input_time(time);
+				Input_time(time, pressed_key);
 				OLED_ClearBuffer();
 				OLED_PrintScaledSymbols(0, 0, font_table, init_message_line0, 8, 2);
 				OLED_PrintScaledSymbols(0, 15, font_table, init_message_line1, 5, 2);							
@@ -201,20 +125,23 @@ void Set_up_time_and_date(uint8_t *time, uint8_t *date)
 						
 		if (symbol_index > 14)
 		{
-				uint8_t hours = (time[0] * 10) + time[1]; 
-				uint8_t minutes = (time[3] * 10) + time[4];
-				uint8_t day = (date[0] * 10) + date[1]; 
-				uint8_t month = (date[3] * 10) + date[4]; 
-				//uint16_t year = (date[6] * 1000) + (date[7] * 100) + (date[8] * 10) + (uint16_t)date[9]; 
-				uint16_t year = 0x07BC;//0x834;
 
+				uint8_t hours = (time[0] * 10) + time[1];//(uint8_t)strtol((const char *)&time[0], NULL, 10);// 
+				uint8_t minutes = (time[3] * 10) + time[4];//(uint8_t)strtol((const char *)&time[3], NULL, 10);//(time[3] * 10) + time[4];
+				uint8_t day = (date[0] * 10) + date[1]; //(uint8_t)strtol(&date_char[0], NULL, 10);
+				uint8_t month = (date[3] * 10) + date[4]; //(uint8_t)strtol(&date_char[3], NULL, 10);
+				uint16_t year = (uint16_t)(date[6] * 1000) + (uint16_t)(date[7] * 100) + (uint16_t)(date[8] * 10) + date[9];//(uint16_t)strtol((const char *)&date[6], NULL, 10);//(date[6] - '0') * 1000 + (date[7] - '0') * 100 + (date[8] - '0') * 10 + (date[9] - '0');
+
+/*				uint8_t hours = 0x0B;
+				uint8_t minutes = 0x0B;
+				uint8_t day = 0x15;
+				uint8_t month = 0x0B;
+				uint16_t year = 0x7D9;*/
 				RTC_init_lse(year, month, day, hours, minutes, 0);
 				cur_action = TIME;
 				initial_set_up = 0;
 		}
 }
-
-
 
 
 int main(void)
@@ -312,15 +239,7 @@ int main(void)
 				{
 						case TIME:
 								OLED_ClearBuffer();
-								OLED_PrintScaledSymbols(10, 0, font_table, vremya_indices, 6, 2);
-/*								uint8_t hh = currentDateTime.RTC_Hours;
-								uint8_t min = currentDateTime.RTC_Minutes;
-								uint8_t ss = currentDateTime.RTC_Seconds;
-								uint8_t mmin = currentDateTime.RTC_Minutes;
-								uint8_t dday = currentDateTime.RTC_Day;
-								uint8_t mmonth = currentDateTime.RTC_Month;
-								uint16_t yyear = currentDateTime.RTC_Year;*/
-						
+								OLED_PrintScaledSymbols(10, 0, font_table, vremya_indices, 6, 2);					
 								OLED_fill_indices(time_indices, currentDateTime.RTC_Hours, currentDateTime.RTC_Minutes);
 								OLED_PrintScaledSymbols(10, 30, font_table, time_indices, 5, 3);
 								OLED_UpdateScreen();
