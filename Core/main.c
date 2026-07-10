@@ -11,14 +11,6 @@
 #include "keypad4x4.h"
 #include "flash_memory.h"
 
-
-#define TIME 0x31
-#define TEMPERATURE 0x32
-#define HUMIDITY 0x33
-#define PRESSURE 0x34
-#define MIN_MAX_LOG 0x35
-#define SEND_DATA_TO_PC 0x36
-
 volatile uint8_t cur_action = 0;
 
 volatile uint8_t initial_set_up = 1;
@@ -95,7 +87,7 @@ int main(void)
 		Keypad_init_gpio();
 
 //	UART2
-//	Uart2_init();//require Tim2
+	Uart2_init();//require Tim2
 //	Uart2_send_string("UART2 init");
 
 		//SPI
@@ -139,8 +131,13 @@ int main(void)
 		time[2] = 10;
 		date[2] = 12;
 		date[5] = 12;		
-		
 
+		initial_set_up = 0;						// delete
+//		FLASH_Unlock();							// delete
+//    FLASH_ErasePage(0x0800FC00);// delete
+//    FLASH_Lock();								// delete
+		char flash_buff[40];// delete
+			
 		while(1)
 		{
 				Delay_us(10000);
@@ -155,6 +152,9 @@ int main(void)
 						tim3_10sec_flag = 0;
 						BME280_measure(&raw_data);
 						BME280_compensate(&raw_data, &bmp280_result);
+//						Is_threshold_value(TEMPERATURE, bmp280_result.temperature_c);
+//						Is_threshold_value(HUMIDITY, bmp280_result.humidity);
+//						Is_threshold_value(PRESSURE, bmp280_result.pressure_mm_rt_st);
 				}
 					
 				pressed_key = Check_keypad_pressed();
@@ -187,6 +187,13 @@ int main(void)
 								OLED_ClearBuffer();
 								OLED_PrintScaledSymbols(10, 0, font_table, pressure_indices, 9, 2);
 								OLED_PrintPressure(24, bmp280_result.pressure_mm_rt_st, 3, font_table);
+								OLED_UpdateScreen();
+								break;
+						case MIN_MAX_LOG:
+								OLED_ClearBuffer();
+								Flash_read_string(flash_buff, 0x28);
+								//OLED_PrintScaledSymbols(10, 0, font_table, flash_buff, 9, 2);
+
 								OLED_UpdateScreen();
 								break;
 						default:

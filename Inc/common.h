@@ -5,6 +5,12 @@
 #include "stm32f10x_rcc.h"
 #include "stm32f10x_gpio.h"
 
+#define TIME 0x31
+#define TEMPERATURE 0x32
+#define HUMIDITY 0x33
+#define PRESSURE 0x34
+#define MIN_MAX_LOG 0x35
+#define SEND_DATA_TO_PC 0x36
 
 #define NVIC_BUTTON_PRIORITY 10
 #define NVIC_SYSTICK_PRIORITY 6
