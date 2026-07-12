@@ -13,12 +13,12 @@
 //#define OFFSET 									0x28
 volatile uint16_t line_count = 0;
 
-//temp 30 [2026-07-02 08:01:03]
-//temp 15 [2026-07-02 08:01:03]
-//press 755 [2026-07-02 08:01:03]
-//press 765 [2026-07-02 08:01:03]
-//humi 40 [2026-07-02 08:01:03]
-//humi 76 [2026-07-02 08:01:03]
+//t 30 [2026-07-02 08:01:03]
+//t 15 [2026-07-02 08:01:03]
+//p 755 [2026-07-02 08:01:03]
+//p 765 [2026-07-02 08:01:03]
+//h 40 [2026-07-02 08:01:03]
+//h 76 [2026-07-02 08:01:03]
 
 
 /*const char *Get_current_date_time(void)
@@ -32,30 +32,27 @@ volatile uint16_t line_count = 0;
 // Формирование строки лога температуры
 char *Get_temperature_log(int16_t value)
 {
-    static char log_buffer[BUFFER_SIZE];
-		RTC_GetLogFormat(&currentDateTime, log_buffer);
-    snprintf(log_buffer, sizeof(log_buffer), "temp %d %s", value, log_buffer);
-		Uart2_send_string(log_buffer);																													//delete
+    static char log_buffer[FLASH_BUFFER_SIZE];
+    snprintf(log_buffer, sizeof(log_buffer), "T %d %s", value, RTC_get_format_date(&currentDateTime));
+//		Uart2_send_string(log_buffer);																													//delete
     return log_buffer;
 }
 
 // Формирование строки лога влажности
 char *Get_humidity_log(int16_t value)
 {
-    static char log_buffer[BUFFER_SIZE];
-		RTC_GetLogFormat(&currentDateTime, log_buffer);
-    snprintf(log_buffer, sizeof(log_buffer), "humi %d %s", value, log_buffer);
-		Uart2_send_string(log_buffer);																													//delete
+    static char log_buffer[FLASH_BUFFER_SIZE];
+    snprintf(log_buffer, sizeof(log_buffer), "H %d %s", value, RTC_get_format_date(&currentDateTime));
+//		Uart2_send_string(log_buffer);																													//delete
     return log_buffer;
 }
 
 // Формирование строки лога давления
 char *Get_pressure_log(int16_t value)
 {
-    static char log_buffer[BUFFER_SIZE];
-		RTC_GetLogFormat(&currentDateTime, log_buffer);
-    snprintf(log_buffer, sizeof(log_buffer), "press %d %s", value, log_buffer);
-		Uart2_send_string(log_buffer);																													//delete
+    static char log_buffer[FLASH_BUFFER_SIZE];
+    snprintf(log_buffer, sizeof(log_buffer), "P %d %s", value, RTC_get_format_date(&currentDateTime));
+//		Uart2_send_string(log_buffer);																													//delete
     return log_buffer;
 }
 
@@ -111,7 +108,7 @@ void Is_threshold_value(uint8_t type, int16_t value)
 }*/
 
 // Функция чтения строки из Flash
-void Flash_read_string(char* buffer, uint16_t maxLen)
+/*void Flash_read_string(char* buffer, uint16_t maxLen)
 {
     uint32_t addr = FLASH_USER_START_ADDR;// + (line_count * OFFSET);
     uint16_t data;
@@ -129,7 +126,9 @@ void Flash_read_string(char* buffer, uint16_t maxLen)
         addr += 2;
     }
     buffer[i] = '\0';
-}
+}*/
+
+
 
 #define LOG_PAGE_SIZE      1024     // Размер страницы в байтах
 #define LOG_ENTRY_SIZE     40       // Размер одного лога в байтах
@@ -137,6 +136,46 @@ void Flash_read_string(char* buffer, uint16_t maxLen)
 
 static uint32_t page_addr = FLASH_USER_START_ADDR; // Текущая страница
 static uint32_t entry_idx = 0;                     // Индекс текущего лога в странице
+
+
+// Глобальные переменные для отслеживания состояния страниц
+volatile uint8_t flash_page_number = 1; 
+/**
+ * @brief Функция чтения строки из Flash-памяти
+ *
+ * @param buffer Указатель на буфер для чтения данных
+ * @param maxLen Максимальная длина буфера
+ */
+void Flash_read_string(char* buffer, uint16_t maxLen, volatile uint8_t flash_page_number)
+{
+    uint32_t addr = page_addr + ((flash_page_number - 1) * 0x28);
+    uint16_t data;
+    int i = 0;
+
+    while (i < maxLen - 1 && addr <= FLASH_USER_START_ADDR + LOG_PAGE_SIZE) {
+        data = *(__IO uint16_t*)addr;
+        buffer[i++] = (char)(data & 0xFF);
+        if (buffer[i - 1] == '\0') break;
+        if (i >= maxLen - 1) break;
+        buffer[i++] = (char)(data >> 8);
+        if (buffer[i - 1] == '\0') break;
+        addr += 2;
+    }
+    buffer[i] = '\0'; // Завершаем строку нулевым символом
+}
+
+/**
+ * @brief Функция инкрементации страницы
+ */
+void Increment_page(void)
+{
+    flash_page_number++; // Инкрементируем номер страницы
+    if (flash_page_number > 3) {
+        flash_page_number = 1; // Циклический возврат к первой странице
+    }
+    page_addr = FLASH_USER_START_ADDR - (flash_page_number - 1) * LOG_PAGE_SIZE;
+}
+
 
 void Flash_write_string(const char* str)
 {

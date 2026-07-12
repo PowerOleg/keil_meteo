@@ -356,7 +356,7 @@ void OLED_PrintTemperature(uint8_t x, uint8_t y, float temperature, uint8_t scal
     // Знак
     if (temperature < 0) {
         indices[cnt++] = 11;  // минус
-        temperature = -temperature;
+        temperature = -temperature;//цифра отрицательная но чтобы работало, надо превратить в положительную
     }
 
     // Целая часть
@@ -493,4 +493,90 @@ void OLED_PrintPressure(/*uint8_t x, */uint8_t y, uint32_t pressure, uint8_t sca
     if (y_unit > OLED_HEIGHT - 7*unit_scale) y_unit = OLED_HEIGHT - 7*unit_scale;
 
     OLED_PrintScaledSymbols(x_unit, y_unit, font_table, unit_idx, unit_len, unit_scale);
+}
+
+//110726 flash
+
+void Display_flash_data(char *flash_buff, const uint8_t current_page_number)// 39 символов + null terminator
+{
+		//t 30 [2026-07-02 08:01:03]
+	
+		const uint8_t page_offset = 20;
+		const uint8_t line1_size = 20;
+		uint8_t line2_size = 20;
+    static uint8_t oled_line1[line1_size];
+		static uint8_t oled_line2[line1_size];
+//		char oled_symbols_test[40];
+		
+
+
+//		char* found = strchr(flash_buff, '[');
+//		uint8_t index_date_start = found - flash_buff;
+	
+		
+    // Копируем строку в массив символов
+//    memcpy(oled_symbols, flash_buff, strlen(flash_buff));
+
+    // Отображаем номер страницы
+		// Индексы: В(20), Л(27), А(25), Ж(28), Н(29), О(30), С(14), Т(19), Ь(31), :(10)
+//const uint8_t humidity_indices[] = {20, 27, 25, 28, 29, 30, 14, 19, 31, 10};
+//    OLED_PrintScaledSymbols(0, 0, font_table, (const uint8_t*)"Страница ", 9, 2);
+//1. 
+/*		uint8_t page_num[1];
+		page_num[0] = current_page_number;//(const uint8_t*)
+    OLED_PrintScaledSymbols(86, 0, font_table, page_num, 1, 1);*/
+		
+		
+		uint8_t index_count = 0;
+		oled_line1[index_count++] = current_page_number;
+		oled_line1[index_count++] = 12;
+		oled_line1[index_count++] = 35;
+
+		int i = 0;
+		if (flash_buff[i] == 'T' || flash_buff[i] == 't')
+		{
+				oled_line1[index_count++] = 19;
+				oled_line1[index_count++] = 35;
+				i += 2;
+				
+				for (; i < line1_size; i++)
+				{
+						if (flash_buff[i] == '[' || flash_buff[i] == ' ')
+								oled_line1[index_count++] = 35;
+						else if (flash_buff[i] == ']')
+						{
+								line2_size = 0;
+								break;
+						}
+						else if (flash_buff[i] == ':')
+								oled_line1[index_count++] = 10;
+						else if (flash_buff[i] == '-')
+								oled_line1[index_count++] = 11;
+						else 
+								oled_line1[index_count++] = flash_buff[i] - '0';
+				}
+
+				for (int j = 0; j < line2_size; i++, j++)
+				{
+						if (flash_buff[i] == '[' || flash_buff[i] == ' ')
+								oled_line2[index_count++] = 35;
+						else if (flash_buff[i] == ']')
+						{
+								line2_size = j;
+								break;
+						}
+						else if (flash_buff[i] == ':')
+								oled_line2[index_count++] = 10;
+						else if (flash_buff[i] == '-')
+								oled_line2[index_count++] = 11;
+						else 
+								oled_line2[index_count++] = flash_buff[i] - '0';
+				}
+				
+		}
+		
+//		oled_line1[(line1_size/* + line2_size*/)] = '\0';
+    // Отображаем содержимое Flash-памяти
+    OLED_PrintScaledSymbols(0, ((current_page_number - 1) * page_offset), font_table, oled_line1, line1_size, 1);
+		OLED_PrintScaledSymbols(0, (((current_page_number - 1) * page_offset) + 10), font_table, oled_line2, line2_size, 1);
 }

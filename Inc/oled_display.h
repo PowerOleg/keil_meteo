@@ -84,4 +84,6 @@ void OLED_DrawPercent15x21(uint8_t x, uint8_t y);
 void OLED_DrawPercent15x21Buf(uint8_t x_px, uint8_t y_page);
 void OLED_PrintPressure(uint8_t y, uint32_t pressure, uint8_t scale, const uint8_t **font_table);
 
+void Display_flash_data(char *flash_buff, const uint8_t current_page_number);
+
 #endif

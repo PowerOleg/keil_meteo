@@ -61,7 +61,15 @@ void Set_up_time_and_date(uint8_t *time, uint8_t *date)
 				uint8_t day = (date[0] * 10) + date[1];
 				uint8_t month = (date[3] * 10) + date[4];
 				uint16_t year = (uint16_t)(date[6] * 1000) + (uint16_t)(date[7] * 100) + (uint16_t)(date[8] * 10) + date[9];
-
+			
+			
+			
+			
+			/*uint8_t hours = 01;
+			uint8_t minutes = 11;
+			uint8_t day = 11;
+			uint8_t month = 11;
+			uint16_t year = 2048;*/
 				RTC_init_lse(year, month, day, hours, minutes, 0);
 				cur_action = TIME;
 				initial_set_up = 0;
@@ -104,13 +112,6 @@ int main(void)
 		OLED_Init_SSD1306();
 		Delay_us(100000);
     OLED_ClearBuffer();
-
-	
-	//FLASH
-/*	char test_string[] = "1234";
-	char read_back[100];
-	Flash_write_string(test_string);
-  Flash_read_string(read_back, sizeof(read_back));*/
 	
 		//BME280
 		SPI_clear_rxne();
@@ -191,9 +192,12 @@ int main(void)
 								break;
 						case MIN_MAX_LOG:
 								OLED_ClearBuffer();
-								Flash_read_string(flash_buff, 0x28);
-								//OLED_PrintScaledSymbols(10, 0, font_table, flash_buff, 9, 2);
-
+								Flash_read_string(flash_buff, 0x28, flash_page_number);
+								Display_flash_data(flash_buff, flash_page_number);
+								Flash_read_string(flash_buff, 0x28, flash_page_number + 1);
+								Display_flash_data(flash_buff, flash_page_number + 1);
+								Flash_read_string(flash_buff, 0x28, flash_page_number + 2);
+								Display_flash_data(flash_buff, flash_page_number + 2);
 								OLED_UpdateScreen();
 								break;
 						default:

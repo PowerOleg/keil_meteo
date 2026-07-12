@@ -21,6 +21,8 @@
 #define NVIC_UART_PRIORITY 7
 #define NVIC_UART_DMA_PRIORITY 11
 
+#define FLASH_BUFFER_SIZE 40
+
 typedef unsigned char bool; 
 typedef unsigned          char uint8_t; 
 typedef unsigned short     int uint16_t; 

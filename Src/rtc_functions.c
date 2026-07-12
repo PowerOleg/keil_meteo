@@ -1,6 +1,7 @@
 #include "rtc_functions.h"
 #include <string.h>
 #include <stdio.h>
+//#include <stdbool.h>
 
 volatile RTC_DateTimeTypeDef currentDateTime;
 
@@ -73,15 +74,20 @@ void RTC_GetDateTime(uint32_t RTC_counter)
 		currentDateTime.RTC_Wday = wday;
 }
 //[2026-07-02 08:01:03]
-void RTC_GetLogFormat(volatile RTC_DateTimeTypeDef* date_time, char *buffer)
+char* RTC_get_format_date(volatile RTC_DateTimeTypeDef* date_time)
 {
-		sprintf(buffer, "\r\n[%04d-%02d-%02d %02d:%02d:%02d]", 
-              date_time->RTC_Year,
-              date_time->RTC_Month,
-              date_time->RTC_Day,
-              date_time->RTC_Hours,
-              date_time->RTC_Minutes,
-              date_time->RTC_Seconds);
+		static char date_buffer[FLASH_BUFFER_SIZE]; 
+		// Сначала заполняем дату
+		snprintf(date_buffer, FLASH_BUFFER_SIZE,
+                  "[%04d-%02d-%02d %02d:%02d:%02d]",
+                  date_time->RTC_Year,
+                  date_time->RTC_Month,
+                  date_time->RTC_Day,
+                  date_time->RTC_Hours,
+                  date_time->RTC_Minutes,
+                  date_time->RTC_Seconds);
+
+		return date_buffer;
 }
 
 
