@@ -17,6 +17,44 @@ volatile uint32_t last_received_time = 0;
 //volatile uint32_t receive_count = 0;
 
 
+/**
+ * @brief Улучшенная функция отправки строки через UART
+ *
+ * @param str Указатель на строку
+ */
+void Uart2_send_string_optimized(char *str)
+{
+    static const uint16_t BUFFER_SIZE = 64;
+    char send_buffer[BUFFER_SIZE];
+    uint16_t remaining = strlen(str);
+    const char* ptr = str;
+
+    while (remaining > 0) {
+        uint16_t chunk_size = (remaining > BUFFER_SIZE) ? BUFFER_SIZE : remaining;
+        memcpy(send_buffer, ptr, chunk_size);
+        send_buffer[chunk_size] = '\0';
+
+        while (*send_buffer) {
+            while (!(USART2->SR & USART_SR_TXE));
+            USART2->DR = (*send_buffer)++;
+        }
+
+        ptr += chunk_size;
+        remaining -= chunk_size;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 void USART2_IRQHandler(void)
 {

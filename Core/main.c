@@ -18,6 +18,7 @@ volatile uint8_t initial_set_up = 1;
 volatile uint8_t pressed_key = 0;
 uint8_t time_indices[] = {0, 0, 10, 0, 0};// время в формате: 12:34
 char flash_buff[40];
+char log_buffer_uart[MAX_LOG_LENGTH] = {'0'}; //Буфер для временного хранения лога
 
 Led led_a8;
 Led led_c13;
@@ -94,7 +95,7 @@ int main(void)
 		Keypad_init_gpio();
 
 //	UART2
-	Uart2_init();//require Tim2
+		Uart2_init();//require Tim2
 
 		//SPI
 	  SPI1_common_gpio_init();
@@ -206,6 +207,30 @@ int main(void)
 								flash_page_number--;
 								cur_action = previous_action;
 								break;
+						
+						case SEND_DATA_TO_PC:
+						{
+								cur_action = TIME;
+								uint16_t log_size = Read_flash_log(log_buffer_uart);
+						
+								if (log_size > 0)
+								{
+//										Display_flash_data(log_buffer_uart, flash_page_number, 1);
+//										OLED_UpdateScreen();
+										Uart2_send_string(log_buffer_uart);
+								}
+								else
+								{
+										Uart2_send_string("No logs available\r\n");
+								}
+						//OLED_PrintScaledSymbols(10, 0, font_table, "ОТПРАВЛЕНО НА ПК", 9, 2);
+						//OLED_UpdateScreen();
+								break;
+						}
+						
+								
+		
+		
 				}
 				previous_action = cur_action;
 		}

@@ -7,9 +7,14 @@
 #include <stdbool.h>
 
 
-#define TIMEOUT_VALUE 28800U//записывает лог не чаще чем каждые 1 часов
+#define TIMEOUT_VALUE 28800U								//записывает лог не чаще чем каждые 8 часов
 #define FLASH_USER_START_ADDR   0x0800FC00  //адрес начала последней страницы
-#define START_OF_LAST_PAGE			0x0800F400
+#define START_OF_LAST_PAGE			0x0800F400	//адрес последней страницы при условии что нумерация страниц от идет конца к началу
+
+#define LOG_PAGE_SIZE      1024     // Размер страницы в байтах
+#define LOG_ENTRY_SIZE     40       // Размер одной записи лога в байтах
+#define LOG_ENTRIES_PER_PAGE (LOG_PAGE_SIZE / LOG_ENTRY_SIZE) // Количество логов на страницу
+
 volatile uint16_t line_count = 0;
 volatile uint8_t allow_temp_log = 1;
 volatile uint8_t allow_humi_log = 1;
@@ -20,13 +25,8 @@ volatile uint32_t last_temp_log_time = 0;
 volatile uint32_t last_humi_log_time = 0;
 volatile uint32_t last_press_log_time = 0;
 
-
-#define LOG_PAGE_SIZE      1024     // Размер страницы в байтах
-#define LOG_ENTRY_SIZE     40       // Размер одного лога в байтах
-#define LOG_ENTRIES_PER_PAGE (LOG_PAGE_SIZE / LOG_ENTRY_SIZE) // Количество логов на страницу
-
-static uint32_t page_addr = FLASH_USER_START_ADDR; // Текущая страница
-static uint32_t entry_idx = 0;                     // Индекс текущего лога в странице
+static uint32_t page_addr = FLASH_USER_START_ADDR;
+static uint32_t entry_idx = 0;// Индекс текущей записи лога на странице
 
 
 // Глобальные переменные для отслеживания состояния страниц
@@ -181,4 +181,115 @@ void Flash_write_string(const char* str)
         addr += 2;
     }
     FLASH_Lock();
+}
+
+
+
+volatile uint32_t current_page_address = FLASH_USER_START_ADDR;
+volatile uint32_t log_length = 0;
+
+
+
+/**
+ * @brief Если хотя бы одно полуслово отличается от значения 0xFFFF, функция немедленно возвращает false, сигнализируя о том, что страница не пуста.
+ *
+ * @param page_start Адрес начала страницы
+ * @return true если страница пустая
+ */
+static bool Is_page_empty(uint32_t page_start)
+{
+    const uint16_t empty_word = 0xFFFF; // Значение пустого полуслова в флеш-памяти
+    const size_t words_per_page = LOG_PAGE_SIZE / sizeof(uint16_t); // Количество полуслов на странице
+
+    // Проверяем каждое полуслово на странице
+    for (size_t i = 0; i < words_per_page; ++i) {
+        if (*(uint16_t *)(page_start + i * sizeof(uint16_t)) != empty_word) {
+            return false; // Найдено непустое полуслово
+        }
+    }
+
+    return true; // Вся страница пуста
+}
+
+/**
+ * @brief Чтение одной записи лога из флеш-памяти
+ *
+ * @param buffer Указатель на буфер для сохранения результата
+ * @param address Текущий адрес чтения
+ * @return Количество прочитанных байтов
+ */
+uint16_t Read_log_entry(char* buffer, uint32_t address)
+{
+    uint16_t bytes_read = 0;
+    uint16_t word_data;
+
+    while (bytes_read < LOG_ENTRY_SIZE)
+		{
+        word_data = *(uint16_t*)address;
+        buffer[bytes_read++] = (word_data & 0xFF); //Младший байт
+        
+        if (buffer[bytes_read - 1] == ']')
+				{
+            buffer[bytes_read] = '\0';
+            return bytes_read;
+        }
+
+        if (bytes_read < LOG_ENTRY_SIZE)
+				{
+            buffer[bytes_read++] = (word_data >> 8); //Старший байт
+            
+            if (buffer[bytes_read - 1] == ']') {
+                buffer[bytes_read] = '\0';
+                return bytes_read;
+            }
+        }
+
+        address += 2;
+    }
+
+    buffer[bytes_read] = '\0';
+    return bytes_read;
+}
+
+/**
+ * @brief Функция чтения и формирования лога целиком из флеш-памяти
+ *
+ * @return Размер полученного лога в байтах
+ */
+uint16_t Read_flash_log(char *log_buffer_uart)
+{
+    uint32_t page_address = FLASH_USER_START_ADDR;//current_page_address;
+    uint16_t total_bytes_read = 0;
+
+//    while (page_address >= START_OF_LAST_PAGE) {
+        if (Is_page_empty(page_address)) {
+//            break;
+        }
+
+        uint32_t entry_address = page_address;
+        bool found_end_marker = false;
+
+        while (!found_end_marker && entry_address < page_address + LOG_PAGE_SIZE)
+				{
+            char temp_buffer[LOG_PAGE_SIZE];
+            uint16_t bytes_read = Read_log_entry(temp_buffer, entry_address);
+            
+            if (total_bytes_read + bytes_read >= MAX_LOG_LENGTH) {
+                break;
+            }
+
+            strcpy(log_buffer_uart + total_bytes_read, temp_buffer);
+            total_bytes_read += bytes_read;
+
+            if (temp_buffer[bytes_read - 1] == ']') {
+                found_end_marker = true;
+            }
+
+            entry_address += bytes_read;
+        }
+
+//        page_address -= LOG_PAGE_SIZE;
+//    }
+
+    return total_bytes_read;
 }

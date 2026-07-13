@@ -25,7 +25,7 @@ void Uart2_receive_string(void);
 void Uart2_send_string(char *str);
 //void Uart_send_string(const char *str);
 void Init_dma_uart1(uint8_t *txBuffer, uint8_t size);
-
+void Uart2_send_string_optimized(char *str);
 
 
 #endif
