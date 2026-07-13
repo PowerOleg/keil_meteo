@@ -4,11 +4,11 @@
 #include "stm32f10x.h"
 #include "stm32f10x_flash.h"
 
-#define MAX_TEMP 25
+#define MAX_TEMP 26
 #define MIN_TEMP 15
 #define MAX_PRESS 765
-#define MIN_PRESS 755
-#define MAX_HUMI 75
+#define MIN_PRESS 750
+#define MAX_HUMI 72
 #define MIN_HUMI 40
 
 extern volatile uint16_t line_count;

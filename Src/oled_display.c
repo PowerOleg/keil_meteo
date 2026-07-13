@@ -36,7 +36,8 @@ const uint8_t *font_table[] = {
 		letter_I_cap_5x7,		// 33
 		letter_U_cap_5x7,		// 34
 		space_5x7,					// 35
-		slash_5x7						// 36
+		slash_5x7,					// 36
+		letter_H_5x7				// 37
 };
 
 
@@ -74,13 +75,15 @@ const uint8_t letter_SoftSign_5x7[5] = {0x7F, 0x48, 0x48, 0x48, 0x30};// Ь
 const uint8_t letter_D_cap_5x7[5] = {0x60, 0x3E, 0x21, 0x3F, 0x60};// Д
 const uint8_t letter_I_cap_5x7[5] = {0x7F, 0x20, 0x10, 0x08, 0x7F};// И 
 const uint8_t letter_U_cap_5x7[5] = {0x03, 0x44, 0x48, 0x48, 0x3F};//У
-const uint8_t slash_5x7[5] = {0x20, 0x10, 0x08, 0x04, 0x02};
-
+const uint8_t slash_5x7[5] = {0x20, 0x10, 0x08, 0x04, 0x02};// /
+const uint8_t letter_H_5x7[5] = {0x7F, 0x08, 0x08, 0x08, 0x7F};// H
 
 // Индексы: В(20), Р(18), Е(21), M(22), Я(23), :(10)
 const uint8_t vremya_indices[] = {20, 18, 21, 22, 23, 10};
 // Индексы: Т(19), Е(21), M(22), П(24), -(26), Р(18), А(25), :(10)
 const uint8_t temperature_indices[] = {19, 21, 22, 24, 26, 18, 25, 10};
+// Индексы: Т(19), Е(21), M(22), П(24), Е(21), Р(18), А(25), Т(19), У(34), Р(18), А(25):(10)
+const uint8_t temperature_full_indices[] = {19, 21, 22, 24, 21, 18, 25, 19, 34, 18, 25, 10};
 // Индексы: В(20), Л(27), А(25), Ж(28), Н(29), О(30), С(14), Т(19), Ь(31), :(10)
 const uint8_t humidity_indices[] = {20, 27, 25, 28, 29, 30, 14, 19, 31, 10};
 // Индексы: Д(32), А(25), В(20), Л(27), Е(21), Н(29), И(33), Е(21), :(10)
@@ -497,15 +500,15 @@ void OLED_PrintPressure(/*uint8_t x, */uint8_t y, uint32_t pressure, uint8_t sca
 
 //110726 flash
 
-void Display_flash_data(char *flash_buff, const uint8_t current_page_number)// 39 символов + null terminator
+void Display_flash_data(char *flash_buff, const uint8_t current_page_number, const uint8_t display_number)// 39 символов + null terminator
 {
 		//t 30 [2026-07-02 08:01:03]
 	
 		const uint8_t page_offset = 20;
-		const uint8_t line1_size = 20;
+		uint8_t line1_size = 20;
 		uint8_t line2_size = 20;
-    static uint8_t oled_line1[line1_size];
-		static uint8_t oled_line2[line1_size];
+    static uint8_t oled_line1[20];
+		static uint8_t oled_line2[20];
 //		char oled_symbols_test[40];
 		
 
@@ -527,26 +530,55 @@ void Display_flash_data(char *flash_buff, const uint8_t current_page_number)// 3
     OLED_PrintScaledSymbols(86, 0, font_table, page_num, 1, 1);*/
 		
 		
-		uint8_t index_count = 0;
+		uint8_t index_count = 0;//индекс чтобы понять какой символ отображаем в строке oled дисплея
 		oled_line1[index_count++] = current_page_number;
 		oled_line1[index_count++] = 12;
-		oled_line1[index_count++] = 35;
+//		oled_line1[index_count++] = 35;
 
-		int i = 0;
+		int i = 0;//индекс чтобы понять какой символ берем из массива с данными из flash 
 		if (flash_buff[i] == 'T' || flash_buff[i] == 't')
 		{
-				oled_line1[index_count++] = 19;
-				oled_line1[index_count++] = 35;
-				i += 2;
-				
+				memcpy(oled_line1 + 2, temperature_full_indices, 11);
+				index_count += 11;
+				//oled_line1[index_count++] = 19;
+		}
+		else if (flash_buff[i] == 'P' || flash_buff[i] == 'p')
+		{		
+				memcpy(oled_line1 + 2, pressure_indices, 8);
+				index_count += 8;
+				//oled_line1[index_count++] = 18;
+		}
+		else if (flash_buff[i] == 'H' || flash_buff[i] == 'h')
+		{
+				memcpy(oled_line1 + 2, humidity_indices, 9);
+				index_count += 9;
+				//oled_line1[index_count++] = 37;
+		}
+		else
+				return;
+
+		
+		oled_line1[index_count++] = 35;
+		i += 2;
+		
 				for (; i < line1_size; i++)
 				{
-						if (flash_buff[i] == '[' || flash_buff[i] == ' ')
+						if (flash_buff[i] == '[')
+						{
+								line1_size = index_count;
+								break;//continue;
+						}
+						else if (flash_buff[i] == ' ')
 								oled_line1[index_count++] = 35;
 						else if (flash_buff[i] == ']')
 						{
-								line2_size = 0;
+								line1_size = i;
 								break;
+						}
+						else if (flash_buff[i] == '\n')
+						{
+								continue;//line1_size = index_count;
+								//break;
 						}
 						else if (flash_buff[i] == ':')
 								oled_line1[index_count++] = 10;
@@ -555,28 +587,32 @@ void Display_flash_data(char *flash_buff, const uint8_t current_page_number)// 3
 						else 
 								oled_line1[index_count++] = flash_buff[i] - '0';
 				}
-
-				for (int j = 0; j < line2_size; i++, j++)
+				int j = 0;
+				for (; j < line2_size; i++)
 				{
-						if (flash_buff[i] == '[' || flash_buff[i] == ' ')
-								oled_line2[index_count++] = 35;
+						if (flash_buff[i] == '[')
+								continue;
+						else if (flash_buff[i] == ' ')
+								oled_line2[j++] = 35;
 						else if (flash_buff[i] == ']')
 						{
 								line2_size = j;
 								break;
 						}
+						else if (flash_buff[i] == '\n')
+								oled_line2[j++] = 35;
 						else if (flash_buff[i] == ':')
-								oled_line2[index_count++] = 10;
+								oled_line2[j++] = 10;
 						else if (flash_buff[i] == '-')
-								oled_line2[index_count++] = 11;
-						else 
-								oled_line2[index_count++] = flash_buff[i] - '0';
+								oled_line2[j++] = 11;
+						else
+								oled_line2[j++] = flash_buff[i] - '0';
 				}
-				
-		}
+//				line2_size = j;
+		
 		
 //		oled_line1[(line1_size/* + line2_size*/)] = '\0';
     // Отображаем содержимое Flash-памяти
-    OLED_PrintScaledSymbols(0, ((current_page_number - 1) * page_offset), font_table, oled_line1, line1_size, 1);
-		OLED_PrintScaledSymbols(0, (((current_page_number - 1) * page_offset) + 10), font_table, oled_line2, line2_size, 1);
+    OLED_PrintScaledSymbols(0, ((display_number - 1) * page_offset), font_table, oled_line1, line1_size, 1);
+		OLED_PrintScaledSymbols(0, (((display_number - 1) * page_offset) + 10), font_table, oled_line2, line2_size, 1);
 }

@@ -12,6 +12,7 @@
 #include "flash_memory.h"
 
 volatile uint8_t cur_action = 0;
+volatile uint8_t previous_action = 0;
 
 volatile uint8_t initial_set_up = 1;
 volatile uint8_t pressed_key = 0;
@@ -138,7 +139,7 @@ int main(void)
 //    FLASH_ErasePage(0x0800FC00);// delete
 //    FLASH_Lock();								// delete
 		char flash_buff[40];// delete
-			
+		
 		while(1)
 		{
 				Delay_us(10000);
@@ -193,16 +194,21 @@ int main(void)
 						case MIN_MAX_LOG:
 								OLED_ClearBuffer();
 								Flash_read_string(flash_buff, 0x28, flash_page_number);
-								Display_flash_data(flash_buff, flash_page_number);
+								Display_flash_data(flash_buff, flash_page_number, 1);
 								Flash_read_string(flash_buff, 0x28, flash_page_number + 1);
-								Display_flash_data(flash_buff, flash_page_number + 1);
+								Display_flash_data(flash_buff, flash_page_number + 1, 2);
 								Flash_read_string(flash_buff, 0x28, flash_page_number + 2);
-								Display_flash_data(flash_buff, flash_page_number + 2);
+								Display_flash_data(flash_buff, flash_page_number + 2, 3);
 								OLED_UpdateScreen();
 								break;
-						default:
+						case PAGE_UP:
+								flash_page_number++;
+								cur_action = previous_action;
 								break;
+//						default:
+//								break;
 				}
+				previous_action = cur_action;
 		}
 	
 }

@@ -29,12 +29,12 @@ volatile uint16_t line_count = 0;
 
 
 
-// Формирование строки лога температуры
+// Формирование строки лога температуры T v26v [y2026ym07md02dh08hm01ms03s]
 char *Get_temperature_log(int16_t value)
 {
     static char log_buffer[FLASH_BUFFER_SIZE];
     snprintf(log_buffer, sizeof(log_buffer), "T %d %s", value, RTC_get_format_date(&currentDateTime));
-//		Uart2_send_string(log_buffer);																													//delete
+		Uart2_send_string(log_buffer);																													//delete
     return log_buffer;
 }
 
@@ -43,7 +43,7 @@ char *Get_humidity_log(int16_t value)
 {
     static char log_buffer[FLASH_BUFFER_SIZE];
     snprintf(log_buffer, sizeof(log_buffer), "H %d %s", value, RTC_get_format_date(&currentDateTime));
-//		Uart2_send_string(log_buffer);																													//delete
+		Uart2_send_string(log_buffer);																													//delete
     return log_buffer;
 }
 
@@ -52,7 +52,7 @@ char *Get_pressure_log(int16_t value)
 {
     static char log_buffer[FLASH_BUFFER_SIZE];
     snprintf(log_buffer, sizeof(log_buffer), "P %d %s", value, RTC_get_format_date(&currentDateTime));
-//		Uart2_send_string(log_buffer);																													//delete
+		Uart2_send_string(log_buffer);																													//delete
     return log_buffer;
 }
 
@@ -66,14 +66,12 @@ void Is_threshold_value(uint8_t type, int16_t value)
                 Flash_write_string(Get_temperature_log(value));
             }
             break;
-            
         case HUMIDITY:
             if ((value > MAX_HUMI) || (value < MIN_HUMI))
 						{
                 Flash_write_string(Get_humidity_log(value));
             }
             break;
-            
         case PRESSURE:
             if ((value > MAX_PRESS) || (value < MIN_PRESS))
 						{

@@ -56,7 +56,8 @@ extern const uint8_t letter_D_cap_5x7[5];
 extern const uint8_t letter_I_cap_5x7[5];
 extern const uint8_t letter_U_cap_5x7[5];
 extern const uint8_t slash_5x7[5];
-
+extern const uint8_t letter_H_5x7[5];
+	
 extern const uint8_t vremya_indices[];
 extern const uint8_t temperature_indices[];
 extern const uint8_t humidity_indices[];
@@ -84,6 +85,6 @@ void OLED_DrawPercent15x21(uint8_t x, uint8_t y);
 void OLED_DrawPercent15x21Buf(uint8_t x_px, uint8_t y_page);
 void OLED_PrintPressure(uint8_t y, uint32_t pressure, uint8_t scale, const uint8_t **font_table);
 
-void Display_flash_data(char *flash_buff, const uint8_t current_page_number);
+void Display_flash_data(char *flash_buff, const uint8_t current_page_number, const uint8_t display_number);
 
 #endif

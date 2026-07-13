@@ -11,6 +11,8 @@
 #define PRESSURE 0x34
 #define MIN_MAX_LOG 0x35
 #define SEND_DATA_TO_PC 0x36
+#define PAGE_UP 0x41
+#define PAGE_DOWN 0x42
 
 #define NVIC_BUTTON_PRIORITY 10
 #define NVIC_SYSTICK_PRIORITY 6
