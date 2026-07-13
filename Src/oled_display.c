@@ -500,57 +500,57 @@ void OLED_PrintPressure(/*uint8_t x, */uint8_t y, uint32_t pressure, uint8_t sca
 
 //110726 flash
 
-void Display_flash_data(char *flash_buff, const uint8_t current_page_number, const uint8_t display_number)// 39 символов + null terminator
+void Display_flash_data(char *flash_buff, const uint8_t current_page_number, const uint8_t display_number)
 {
-		//t 30 [2026-07-02 08:01:03]
-	
 		const uint8_t page_offset = 20;
-		uint8_t line1_size = 20;
-		uint8_t line2_size = 20;
+		uint8_t line1_size = 20;//может измениться
+		uint8_t line2_size = 20;////может измениться
     static uint8_t oled_line1[20];
 		static uint8_t oled_line2[20];
-//		char oled_symbols_test[40];
 		
-
-
-//		char* found = strchr(flash_buff, '[');
-//		uint8_t index_date_start = found - flash_buff;
-	
-		
-    // Копируем строку в массив символов
-//    memcpy(oled_symbols, flash_buff, strlen(flash_buff));
-
-    // Отображаем номер страницы
-		// Индексы: В(20), Л(27), А(25), Ж(28), Н(29), О(30), С(14), Т(19), Ь(31), :(10)
-//const uint8_t humidity_indices[] = {20, 27, 25, 28, 29, 30, 14, 19, 31, 10};
-//    OLED_PrintScaledSymbols(0, 0, font_table, (const uint8_t*)"Страница ", 9, 2);
-//1. 
-/*		uint8_t page_num[1];
-		page_num[0] = current_page_number;//(const uint8_t*)
-    OLED_PrintScaledSymbols(86, 0, font_table, page_num, 1, 1);*/
-		
-		
-		uint8_t index_count = 0;//индекс чтобы понять какой символ отображаем в строке oled дисплея
-		oled_line1[index_count++] = current_page_number;
-		oled_line1[index_count++] = 12;
-//		oled_line1[index_count++] = 35;
-
-		int i = 0;//индекс чтобы понять какой символ берем из массива с данными из flash 
-		if (flash_buff[i] == 'T' || flash_buff[i] == 't')
+		if ((uint8_t)flash_buff[0] == 0xFF && (uint8_t)flash_buff[1] == 0xFF)
 		{
-				memcpy(oled_line1 + 2, temperature_full_indices, 11);
+				return;
+		}
+		uint8_t index_count = 0;//индекс чтобы понять какой символ отображаем в строке oled дисплея
+		uint8_t init_offset = 4;//сдвиг чтобы показать номер записи
+		if (current_page_number > 99)
+		{
+				oled_line1[index_count++] = current_page_number / 100 % 10;
+				oled_line1[index_count++] = current_page_number / 10 % 10;
+				oled_line1[index_count++] = current_page_number % 10;
+		}
+		else if (current_page_number > 9)
+		{
+				oled_line1[index_count++] = 0;
+				oled_line1[index_count++] = current_page_number / 10 % 10;
+				oled_line1[index_count++] = current_page_number % 10;
+		}
+		else
+		{
+				oled_line1[index_count++] = 0;
+				oled_line1[index_count++] = 0;
+				oled_line1[index_count++] = current_page_number;
+		}
+		oled_line1[index_count++] = 12;
+
+
+		int src_index = 0;//индекс чтобы понять какой символ берем из массива с данными из flash 
+		if (flash_buff[src_index] == 'T' || flash_buff[src_index] == 't')
+		{
+				memcpy(oled_line1 + init_offset, temperature_full_indices, 11);
 				index_count += 11;
 				//oled_line1[index_count++] = 19;
 		}
-		else if (flash_buff[i] == 'P' || flash_buff[i] == 'p')
+		else if (flash_buff[src_index] == 'P' || flash_buff[src_index] == 'p')
 		{		
-				memcpy(oled_line1 + 2, pressure_indices, 8);
+				memcpy(oled_line1 + init_offset, pressure_indices, 8);
 				index_count += 8;
 				//oled_line1[index_count++] = 18;
 		}
-		else if (flash_buff[i] == 'H' || flash_buff[i] == 'h')
+		else if (flash_buff[src_index] == 'H' || flash_buff[src_index] == 'h')
 		{
-				memcpy(oled_line1 + 2, humidity_indices, 9);
+				memcpy(oled_line1 + init_offset, humidity_indices, 9);
 				index_count += 9;
 				//oled_line1[index_count++] = 37;
 		}
@@ -559,59 +559,55 @@ void Display_flash_data(char *flash_buff, const uint8_t current_page_number, con
 
 		
 		oled_line1[index_count++] = 35;
-		i += 2;
+		src_index += 2;
 		
-				for (; i < line1_size; i++)
+				for (; src_index < line1_size; src_index++)
 				{
-						if (flash_buff[i] == '[')
+						if (flash_buff[src_index] == '[')
 						{
 								line1_size = index_count;
 								break;//continue;
 						}
-						else if (flash_buff[i] == ' ')
+						else if (flash_buff[src_index] == ' ')
 								oled_line1[index_count++] = 35;
-						else if (flash_buff[i] == ']')
+						else if (flash_buff[src_index] == ']')
 						{
-								line1_size = i;
+								line1_size = index_count;
 								break;
 						}
-						else if (flash_buff[i] == '\n')
+						else if (flash_buff[src_index] == '\n')
 						{
-								continue;//line1_size = index_count;
-								//break;
+								continue;
 						}
-						else if (flash_buff[i] == ':')
+						else if (flash_buff[src_index] == ':')
 								oled_line1[index_count++] = 10;
-						else if (flash_buff[i] == '-')
+						else if (flash_buff[src_index] == '-')
 								oled_line1[index_count++] = 11;
 						else 
-								oled_line1[index_count++] = flash_buff[i] - '0';
+								oled_line1[index_count++] = flash_buff[src_index] - '0';
 				}
 				int j = 0;
-				for (; j < line2_size; i++)
+				for (; j < line2_size; src_index++)
 				{
-						if (flash_buff[i] == '[')
+						if (flash_buff[src_index] == '[')
 								continue;
-						else if (flash_buff[i] == ' ')
+						else if (flash_buff[src_index] == ' ')
 								oled_line2[j++] = 35;
-						else if (flash_buff[i] == ']')
+						else if (flash_buff[src_index] == ']')
 						{
 								line2_size = j;
 								break;
 						}
-						else if (flash_buff[i] == '\n')
+						else if (flash_buff[src_index] == '\n')
 								oled_line2[j++] = 35;
-						else if (flash_buff[i] == ':')
+						else if (flash_buff[src_index] == ':')
 								oled_line2[j++] = 10;
-						else if (flash_buff[i] == '-')
+						else if (flash_buff[src_index] == '-')
 								oled_line2[j++] = 11;
 						else
-								oled_line2[j++] = flash_buff[i] - '0';
+								oled_line2[j++] = flash_buff[src_index] - '0';
 				}
-//				line2_size = j;
-		
-		
-//		oled_line1[(line1_size/* + line2_size*/)] = '\0';
+
     // Отображаем содержимое Flash-памяти
     OLED_PrintScaledSymbols(0, ((display_number - 1) * page_offset), font_table, oled_line1, line1_size, 1);
 		OLED_PrintScaledSymbols(0, (((display_number - 1) * page_offset) + 10), font_table, oled_line2, line2_size, 1);

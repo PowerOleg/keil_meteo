@@ -17,6 +17,7 @@ volatile uint8_t previous_action = 0;
 volatile uint8_t initial_set_up = 1;
 volatile uint8_t pressed_key = 0;
 uint8_t time_indices[] = {0, 0, 10, 0, 0};// время в формате: 12:34
+char flash_buff[40];
 
 Led led_a8;
 Led led_c13;
@@ -63,14 +64,11 @@ void Set_up_time_and_date(uint8_t *time, uint8_t *date)
 				uint8_t month = (date[3] * 10) + date[4];
 				uint16_t year = (uint16_t)(date[6] * 1000) + (uint16_t)(date[7] * 100) + (uint16_t)(date[8] * 10) + date[9];
 			
-			
-			
-			
-			/*uint8_t hours = 01;
-			uint8_t minutes = 11;
-			uint8_t day = 11;
-			uint8_t month = 11;
-			uint16_t year = 2048;*/
+				/*uint8_t hours = 01;
+				uint8_t minutes = 11;
+				uint8_t day = 11;
+				uint8_t month = 11;
+				uint16_t year = 2048;*/
 				RTC_init_lse(year, month, day, hours, minutes, 0);
 				cur_action = TIME;
 				initial_set_up = 0;
@@ -135,10 +133,7 @@ int main(void)
 		date[5] = 12;		
 
 		initial_set_up = 0;						// delete
-//		FLASH_Unlock();							// delete
-//    FLASH_ErasePage(0x0800FC00);// delete
-//    FLASH_Lock();								// delete
-		char flash_buff[40];// delete
+		
 		
 		while(1)
 		{
@@ -154,9 +149,9 @@ int main(void)
 						tim3_10sec_flag = 0;
 						BME280_measure(&raw_data);
 						BME280_compensate(&raw_data, &bmp280_result);
-//						Is_threshold_value(TEMPERATURE, bmp280_result.temperature_c);
-//						Is_threshold_value(HUMIDITY, bmp280_result.humidity);
-//						Is_threshold_value(PRESSURE, bmp280_result.pressure_mm_rt_st);
+						Is_threshold_value(TEMPERATURE, bmp280_result.temperature_c);
+						Is_threshold_value(HUMIDITY, bmp280_result.humidity);
+						Is_threshold_value(PRESSURE, bmp280_result.pressure_mm_rt_st);
 				}
 					
 				pressed_key = Check_keypad_pressed();
@@ -205,8 +200,10 @@ int main(void)
 								flash_page_number++;
 								cur_action = previous_action;
 								break;
-//						default:
-//								break;
+						case PAGE_DOWN:
+								flash_page_number--;
+								cur_action = previous_action;
+								break;
 				}
 				previous_action = cur_action;
 		}
