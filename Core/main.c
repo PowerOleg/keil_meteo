@@ -211,13 +211,13 @@ int main(void)
 						case SEND_DATA_TO_PC:
 						{
 								cur_action = TIME;
-								uint16_t log_size = Read_flash_log(log_buffer_uart);
+								uint16_t page_size = Read_page_log(log_buffer_uart, 0x0800FC00);
 						
-								if (log_size > 0)
+								if (page_size > 0)
 								{
 //										Display_flash_data(log_buffer_uart, flash_page_number, 1);
 //										OLED_UpdateScreen();
-										Uart2_send_string(log_buffer_uart);
+										//Uart2_send_string(log_buffer_uart);
 								}
 								else
 								{
