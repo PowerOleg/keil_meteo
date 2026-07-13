@@ -95,7 +95,6 @@ int main(void)
 
 //	UART2
 	Uart2_init();//require Tim2
-//	Uart2_send_string("UART2 init");
 
 		//SPI
 	  SPI1_common_gpio_init();
@@ -131,7 +130,10 @@ int main(void)
 		time[2] = 10;
 		date[2] = 12;
 		date[5] = 12;		
-
+		
+ //       FLASH_Unlock();// delete
+//        FLASH_ErasePage(0x0800FC00);// delete
+//        FLASH_Lock();// delete
 		initial_set_up = 0;						// delete
 		
 		

@@ -5,127 +5,20 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "uart.h"
 
+
+#define TIMEOUT_VALUE 28800U//записывает лог не чаще чем каждые 1 часов
 #define FLASH_USER_START_ADDR   0x0800FC00  //адрес начала последней страницы
 #define START_OF_LAST_PAGE			0x0800F400
-//#define FLASH_PAGE_SIZE         1024
-//#define OFFSET 									0x28
 volatile uint16_t line_count = 0;
+volatile uint8_t allow_temp_log = 1;
+volatile uint8_t allow_humi_log = 1;
+volatile uint8_t allow_press_log = 1;
 
-//t 30 [2026-07-02 08:01:03]
-//t 15 [2026-07-02 08:01:03]
-//p 755 [2026-07-02 08:01:03]
-//p 765 [2026-07-02 08:01:03]
-//h 40 [2026-07-02 08:01:03]
-//h 76 [2026-07-02 08:01:03]
-
-
-/*const char *Get_current_date_time(void)
-{
-    static char buffer[] = "[2026-07-02 08:01:03]"; // Здесь подставьте вашу реализацию получения текущей даты и времени
-    return buffer;
-}*/
-
-
-
-// Формирование строки лога температуры T v26v [y2026ym07md02dh08hm01ms03s]
-char *Get_temperature_log(int16_t value)
-{
-    static char log_buffer[FLASH_BUFFER_SIZE];
-    snprintf(log_buffer, sizeof(log_buffer), "T %d %s", value, RTC_get_format_date(&currentDateTime));
-		Uart2_send_string(log_buffer);																													//delete
-    return log_buffer;
-}
-
-// Формирование строки лога влажности
-char *Get_humidity_log(int16_t value)
-{
-    static char log_buffer[FLASH_BUFFER_SIZE];
-    snprintf(log_buffer, sizeof(log_buffer), "H %d %s", value, RTC_get_format_date(&currentDateTime));
-		Uart2_send_string(log_buffer);																													//delete
-    return log_buffer;
-}
-
-// Формирование строки лога давления
-char *Get_pressure_log(int16_t value)
-{
-    static char log_buffer[FLASH_BUFFER_SIZE];
-    snprintf(log_buffer, sizeof(log_buffer), "P %d %s", value, RTC_get_format_date(&currentDateTime));
-		Uart2_send_string(log_buffer);																													//delete
-    return log_buffer;
-}
-
-// Проверка превышения порогов и запись в память
-void Is_threshold_value(uint8_t type, int16_t value)
-{
-    switch (type) {
-        case TEMPERATURE:
-            if ((value > MAX_TEMP) || (value < MIN_TEMP))
-						{
-                Flash_write_string(Get_temperature_log(value));
-            }
-            break;
-        case HUMIDITY:
-            if ((value > MAX_HUMI) || (value < MIN_HUMI))
-						{
-                Flash_write_string(Get_humidity_log(value));
-            }
-            break;
-        case PRESSURE:
-            if ((value > MAX_PRESS) || (value < MIN_PRESS))
-						{
-                Flash_write_string(Get_pressure_log(value));
-            }
-            break;
-    }
-}
-
-// Функция записи строки во Flash
-/*void Flash_write_string(const char* str)
-{
-    uint32_t addr = FLASH_USER_START_ADDR + (line_count * OFFSET);
-    uint16_t data;
-    int len = strlen(str) + 1; // с нуль-терминатором
-    int i;
-    
-    FLASH_Unlock();
-    FLASH_ErasePage(FLASH_USER_START_ADDR);
-    
-    // Пишем полусловами (16 бит), собирая байты попарно
-    for (i = 0; i < len; i += 2) {
-        data = (uint16_t)str[i];
-        if (i + 1 < len)
-            data |= (uint16_t)str[i + 1] << 8;
-        FLASH_ProgramHalfWord(addr, data);
-        addr += 2;
-    }
-    
-    FLASH_Lock();
-//		line_count++;
-}*/
-
-// Функция чтения строки из Flash
-/*void Flash_read_string(char* buffer, uint16_t maxLen)
-{
-    uint32_t addr = FLASH_USER_START_ADDR;// + (line_count * OFFSET);
-    uint16_t data;
-    int i = 0;
-
-    while (i < maxLen - 1) {
-        data = *(__IO uint16_t*)addr;
-        buffer[i] = (char)(data & 0xFF);
-        if (buffer[i] == '\0') break;
-        i++;
-        if (i >= maxLen - 1) break;
-        buffer[i] = (char)(data >> 8);
-        if (buffer[i] == '\0') break;
-        i++;
-        addr += 2;
-    }
-    buffer[i] = '\0';
-}*/
-
+// Глобальные переменные для хранения времени последней записи
+volatile uint32_t last_temp_log_time = 0;
+volatile uint32_t last_humi_log_time = 0;
+volatile uint32_t last_press_log_time = 0;
 
 
 #define LOG_PAGE_SIZE      1024     // Размер страницы в байтах
@@ -138,6 +31,83 @@ static uint32_t entry_idx = 0;                     // Индекс текущего лога в стр
 
 // Глобальные переменные для отслеживания состояния страниц
 volatile uint8_t flash_page_number = 1; 
+
+// Формирование строки лога температуры T v26v [y2026ym07md02dh08hm01ms03s]
+char *Get_temperature_log(int16_t value)
+{
+    static char log_buffer[FLASH_BUFFER_SIZE];
+    snprintf(log_buffer, sizeof(log_buffer), "T %d %s", value, RTC_get_format_date(&currentDateTime));
+//		Uart2_send_string(log_buffer);																													//delete
+    return log_buffer;
+}
+
+// Формирование строки лога влажности
+char *Get_humidity_log(int16_t value)
+{
+    static char log_buffer[FLASH_BUFFER_SIZE];
+    snprintf(log_buffer, sizeof(log_buffer), "H %d %s", value, RTC_get_format_date(&currentDateTime));
+//		Uart2_send_string(log_buffer);																													//delete
+    return log_buffer;
+}
+
+// Формирование строки лога давления
+char *Get_pressure_log(int16_t value)
+{
+    static char log_buffer[FLASH_BUFFER_SIZE];
+    snprintf(log_buffer, sizeof(log_buffer), "P %d %s", value, RTC_get_format_date(&currentDateTime));
+//		Uart2_send_string(log_buffer);																													//delete
+    return log_buffer;
+}
+
+static void Reset_logging(void)
+{
+		allow_temp_log = 1;
+		allow_humi_log = 1;
+		allow_press_log = 1;
+}
+static uint8_t Is_timeout(volatile uint32_t *last_temp_log_time)
+{
+		uint32_t current_time = RTC_GetRTC_Counter();
+		if (current_time - *last_temp_log_time >= TIMEOUT_VALUE)
+		{
+				*last_temp_log_time = current_time;
+				return 1;
+    }
+		return 0;
+}
+
+// Проверка превышения порогов и запись в память
+void Is_threshold_value(uint8_t type, int16_t value)
+{
+    switch (type) {
+        case TEMPERATURE:
+						allow_temp_log = Is_timeout(&last_temp_log_time);
+            if (((value > MAX_TEMP) || (value < MIN_TEMP)) && allow_temp_log)
+						{
+                Flash_write_string(Get_temperature_log(value));
+								allow_temp_log = 0;
+            }
+            break;
+        case HUMIDITY:
+						allow_humi_log = Is_timeout(&last_humi_log_time);
+            if (((value > MAX_HUMI) || (value < MIN_HUMI)) && allow_humi_log)
+						{
+                Flash_write_string(Get_humidity_log(value));
+								allow_humi_log = 0;
+            }
+            break;
+        case PRESSURE:
+						allow_press_log = Is_timeout(&last_press_log_time);
+            if (((value > MAX_PRESS) || (value < MIN_PRESS)) && allow_press_log)
+						{
+                Flash_write_string(Get_pressure_log(value));
+								allow_press_log = 0;
+            }
+            break;
+    }
+}
+
+
 /**
  * @brief Функция чтения строки из Flash-памяти
  *

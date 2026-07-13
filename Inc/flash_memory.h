@@ -4,15 +4,18 @@
 #include "stm32f10x.h"
 #include "stm32f10x_flash.h"
 
-#define MAX_TEMP 27
+#define MAX_TEMP 30
 #define MIN_TEMP 15
-#define MAX_PRESS 760
+#define MAX_PRESS 765
 #define MIN_PRESS 742
 #define MAX_HUMI 76
 #define MIN_HUMI 60
 
 extern volatile uint16_t line_count;
 extern volatile uint8_t flash_page_number;
+extern volatile uint8_t allow_temp_log;
+extern volatile uint8_t allow_humi_log;
+extern volatile uint8_t allow_press_log;
 
 const char *Get_current_date_time(void);
 char *Get_temperature_log(int16_t value);
