@@ -59,21 +59,10 @@ char *Get_pressure_log(int16_t value)
     return log_buffer;
 }
 
-static void Reset_logging(void)
-{
-		allow_temp_log = 1;
-		allow_humi_log = 1;
-		allow_press_log = 1;
-}
 static uint8_t Is_timeout(volatile uint32_t *last_temp_log_time)
 {
 		uint32_t current_time = RTC_GetRTC_Counter();
-		if (current_time - *last_temp_log_time >= TIMEOUT_VALUE)
-		{
-				*last_temp_log_time = current_time;
-				return 1;
-    }
-		return 0;
+		return current_time - *last_temp_log_time >= TIMEOUT_VALUE;
 }
 
 // Проверка превышения порогов и запись в память
@@ -85,6 +74,7 @@ void Is_threshold_value(uint8_t type, int16_t value)
             if (((value > MAX_TEMP) || (value < MIN_TEMP)) && allow_temp_log)
 						{
                 Flash_write_string(Get_temperature_log(value));
+								last_temp_log_time = RTC_GetRTC_Counter();
 								allow_temp_log = 0;
             }
             break;
@@ -93,6 +83,7 @@ void Is_threshold_value(uint8_t type, int16_t value)
             if (((value > MAX_HUMI) || (value < MIN_HUMI)) && allow_humi_log)
 						{
                 Flash_write_string(Get_humidity_log(value));
+								last_humi_log_time = RTC_GetRTC_Counter();
 								allow_humi_log = 0;
             }
             break;
@@ -101,6 +92,7 @@ void Is_threshold_value(uint8_t type, int16_t value)
             if (((value > MAX_PRESS) || (value < MIN_PRESS)) && allow_press_log)
 						{
                 Flash_write_string(Get_pressure_log(value));
+								last_press_log_time = RTC_GetRTC_Counter();
 								allow_press_log = 0;
             }
             break;
@@ -250,7 +242,37 @@ uint16_t Read_log_entry(char* buffer, uint32_t address) {
  *
  * @return Размер полученного лога в байтах
  */
-uint16_t Read_page_log(char *log_buffer_uart, uint32_t page_address) {
+
+uint16_t Read_page_log(char *log_buffer_uart, uint32_t page_address, uint16_t max_size)
+{
+    uint16_t total_bytes_read = 0;
+    if (Is_page_empty(page_address)) return 0;
+
+    uint32_t entry_address = page_address;
+    uint8_t entry_count = 0;
+
+    while (entry_address < page_address + LOG_PAGE_SIZE) {
+        char temp_buffer[LOG_ENTRY_SIZE];
+        uint16_t bytes_read = Read_log_entry(temp_buffer, entry_address);
+
+        if (bytes_read == 0 || temp_buffer[0] == '\0') break;
+        if (++entry_count >= LOG_ENTRIES_PER_PAGE) break;
+
+        // Проверка: поместятся ли сама запись + \r\n
+        if (total_bytes_read + bytes_read + 2 > max_size) break;
+
+        memcpy(log_buffer_uart + total_bytes_read, temp_buffer, bytes_read);
+        total_bytes_read += bytes_read;
+
+        log_buffer_uart[total_bytes_read++] = '\r';
+        log_buffer_uart[total_bytes_read++] = '\n';
+
+        entry_address += LOG_ENTRY_SIZE;
+    }
+    return total_bytes_read;
+}
+
+/*uint16_t Read_page_log(char *log_buffer_uart, uint32_t page_address) {
     uint16_t total_bytes_read = 0;
 
     if (Is_page_empty(page_address)) {
@@ -279,14 +301,14 @@ uint16_t Read_page_log(char *log_buffer_uart, uint32_t page_address) {
         log_buffer_uart[total_bytes_read++] = '\n';
 
         entry_address += LOG_ENTRY_SIZE;
-				temp_buffer[bytes_read] = '\r';
-				temp_buffer[bytes_read + 1] = '\n';
-				temp_buffer[bytes_read + 2] = '\0';
-				Uart2_send_string(temp_buffer);
+//				temp_buffer[bytes_read] = '\r';
+//				temp_buffer[bytes_read + 1] = '\n';
+//				temp_buffer[bytes_read + 2] = '\0';
+//				Uart2_send_string(temp_buffer);
     }
 
     return total_bytes_read;
-}
+}*/
 /*uint16_t Read_page_log(char *log_buffer_uart, uint32_t page_address)
 {
 //    uint32_t page_address = FLASH_USER_START_ADDR;//current_page_address;

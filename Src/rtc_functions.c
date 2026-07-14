@@ -79,7 +79,7 @@ char* RTC_get_format_date(volatile RTC_DateTimeTypeDef* date_time)
 		static char date_buffer[FLASH_BUFFER_SIZE]; 
 		// Сначала заполняем дату
 		snprintf(date_buffer, FLASH_BUFFER_SIZE,
-                  "[%04d-%02d-%02d\n%02d:%02d:%02d]",
+                  "[%04d-%02d-%02d %02d:%02d:%02d]",
                   date_time->RTC_Year,
                   date_time->RTC_Month,
                   date_time->RTC_Day,

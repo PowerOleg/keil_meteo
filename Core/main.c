@@ -18,7 +18,7 @@ volatile uint8_t initial_set_up = 1;
 volatile uint8_t pressed_key = 0;
 uint8_t time_indices[] = {0, 0, 10, 0, 0};// время в формате: 12:34
 char flash_buff[40];
-char log_buffer_uart[MAX_LOG_LENGTH] = {'0'}; //Буфер для временного хранения лога
+char log_buffer_uart[LOG_BUFFER_SIZE] = {'0'}; //Буфер для временного хранения лога
 
 Led led_a8;
 Led led_c13;
@@ -132,7 +132,7 @@ int main(void)
 		date[2] = 12;
 		date[5] = 12;		
 		
- //       FLASH_Unlock();// delete
+//        FLASH_Unlock();// delete
 //        FLASH_ErasePage(0x0800FC00);// delete
 //        FLASH_Lock();// delete
 		initial_set_up = 0;						// delete
@@ -211,17 +211,22 @@ int main(void)
 						case SEND_DATA_TO_PC:
 						{
 								cur_action = TIME;
-								uint16_t page_size = Read_page_log(log_buffer_uart, 0x0800FC00);
+								memset(log_buffer_uart, 0, LOG_BUFFER_SIZE);
+								uint16_t page_size = Read_page_log(log_buffer_uart, 0x0800FC00, LOG_BUFFER_SIZE);
 						
 								if (page_size > 0)
 								{
-//										Display_flash_data(log_buffer_uart, flash_page_number, 1);
-//										OLED_UpdateScreen();
-										//Uart2_send_string(log_buffer_uart);
+//									Display_flash_data(log_buffer_uart, flash_page_number, 1);
+//									OLED_UpdateScreen();
+//										__disable_irq();
+										Uart2_send_string(log_buffer_uart, page_size);//Uart2_send_string(log_buffer_uart);
+										
+										while(transmission_in_progress) {}
+//										__enable_irq();	
 								}
 								else
 								{
-										Uart2_send_string("No logs available\r\n");
+//										Uart2_send_string("No logs available\r\n");
 								}
 						//OLED_PrintScaledSymbols(10, 0, font_table, "ОТПРАВЛЕНО НА ПК", 9, 2);
 						//OLED_UpdateScreen();

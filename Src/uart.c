@@ -8,7 +8,7 @@
 
 #define UART_BUFFER_SIZE 64
 
-uint8_t uart2_tx_buffer[UART_BUFFER_SIZE];// = "Hello\r\n";//"Message sent from STM32 via DMA!\r\n";
+//uint8_t uart2_tx_buffer[UART_BUFFER_SIZE];// = "Hello\r\n";//"Message sent from STM32 via DMA!\r\n";
 uint8_t uart2_rx_buffer[UART_BUFFER_SIZE];
 uint16_t buffer_index = 0;// Текущая позиция в буфере uart2_rx_buffer
 
@@ -16,13 +16,100 @@ volatile uint32_t last_received_time = 0;
 //volatile uint8_t receive_flag = 0;
 //volatile uint32_t receive_count = 0;
 
+volatile uint16_t tx_remaining_bytes = 0;
+
+/*volatile uint8_t *tx_buffer_ptr = NULL;
+volatile uint16_t tx_index = 0;
+*/
+volatile uint8_t transmission_in_progress = 0;
+
+#define TX_BUFFER_SIZE 1024
+volatile uint8_t tx_buffer[TX_BUFFER_SIZE];
+volatile uint16_t head = 0;
+volatile uint16_t tail = 0;
+
+
+void USART2_IRQHandler(void) {
+    if (USART_GetITStatus(USART2, USART_IT_TXE) == SET) {
+        if (tx_remaining_bytes > 0) {
+            USART_SendData(USART2, Get_char_from_buffer());
+						tx_remaining_bytes--;
+        } else {
+            USART_ITConfig(USART2, USART_IT_TXE, DISABLE);
+						transmission_in_progress = 0;
+        }
+    }
+}
+
+uint8_t Get_char_from_buffer(void)
+{
+    uint8_t c = tx_buffer[tail];
+    tail = (tail + 1) % TX_BUFFER_SIZE;
+    return c;
+}
+
+
+
+void Put_char_into_buffer(uint8_t c)
+{
+    tx_buffer[head] = c;
+    head = (head + 1) % TX_BUFFER_SIZE;
+}
+
+void Uart2_send_string(const char *str, uint16_t size)
+{
+	
+    if (size > TX_BUFFER_SIZE) {
+        // Опционально: отправить только первые BUFFER_SIZE байт
+        size = TX_BUFFER_SIZE;
+        // Или просто return с сообщением об ошибке
+    }
+
+    tx_remaining_bytes = size;
+    for (uint16_t i = 0; i < size; i++) {
+        Put_char_into_buffer(str[i]);
+    }
+    transmission_in_progress = 1;
+    USART_ITConfig(USART2, USART_IT_TXE, ENABLE);
+}
+
+
+
+
+
+
+
+
+
+/*
+static bool Is_buffer_empty(void)
+{
+    return head == tail;
+}
+void Uart2_send_string(const char *str, const uint16_t size)
+{
+		tx_remaining_bytes = size;
+    while (tx_remaining_bytes > 0) 
+		{
+        Put_char_into_buffer(*str++);
+				tx_remaining_bytes--;
+    }
+		tx_remaining_bytes = size;
+		transmission_in_progress = 1;
+    USART_ITConfig(USART2, USART_IT_TXE, ENABLE);
+}
+
+*/
+
+
+
 
 /**
  * @brief Улучшенная функция отправки строки через UART
  *
  * @param str Указатель на строку
  */
-void Uart2_send_string_optimized(char *str)
+/*void Uart2_send_string_optimized(char *str)
 {
     static const uint16_t BUFFER_SIZE = 64;
     char send_buffer[BUFFER_SIZE];
@@ -42,7 +129,30 @@ void Uart2_send_string_optimized(char *str)
         ptr += chunk_size;
         remaining -= chunk_size;
     }
+}*/
+
+
+/*
+void Uart2_send_string_optimized(const char *str, const uint16_t size)
+{
+    __disable_irq(); // Блокировка прерываний для предотвращения конфликтов
+
+    if (!transmission_in_progress) {
+        transmission_in_progress = true;
+
+        tx_buffer_ptr = (uint8_t *)str;
+        tx_remaining_bytes = size;
+        tx_index = 0;
+
+        // Начало передачи первого байта и разрешение прерывания
+        USART_SendData(USART2, tx_buffer_ptr[tx_index++]);
+        tx_remaining_bytes--;
+        USART_ITConfig(USART2, USART_IT_TXE, ENABLE);
+    }
+
+    __enable_irq(); // Возобновление прерываний
 }
+*/
 
 
 
@@ -52,11 +162,8 @@ void Uart2_send_string_optimized(char *str)
 
 
 
-
-
-
-
-void USART2_IRQHandler(void)
+//для получения
+/*void USART2_IRQHandler(void)
 {
     // Проверяем, вызвано ли прерывание (RXNE)
     if (USART_GetITStatus(USART2, USART_IT_RXNE) == SET)
@@ -75,7 +182,7 @@ void USART2_IRQHandler(void)
         if (buffer_index >= UART_BUFFER_SIZE - 1)
             buffer_index = UART_BUFFER_SIZE - 1;
     }
-}
+}*/
 
 
 
@@ -103,6 +210,8 @@ void USART1_IRQHandler(void)
     // if (USART_GetITStatus(USART1, USART_IT_RXNE) != RESET) { ... }
 }
 */
+
+
 void Uart2_receive_string(void)
 {
 	 // Проверяем: если буфер не пуст И прошло больше времени, чем наш таймаут
@@ -121,36 +230,11 @@ void Uart2_receive_string(void)
                 USART_SendData(USART2, uart2_rx_buffer[i]);
             }
             while(USART_GetFlagStatus(USART2, USART_FLAG_TC) == RESET);
-        }
-	
-	
-	
-//	// Проверяем, была ли принята полная строка
-//        if (receive_flag)
-//        {
-//						Toggle_led(GPIOB, GPIO_Pin_12);
-//            receive_flag = 0;
-//            // 1. Копируем принятые данные в буфер передачи.
-//            //    Используем strncpy для безопасности, чтобы не выйти за границы буфера.
-//            strncpy((char*)uart2_tx_buffer, (char*)uart2_rx_buffer, BUFFER_SIZE);
-//            // 2. Отправляем данные побайтно в "блокирующем" режиме.
-//            for(int i = 0; i < strlen((char*)uart2_tx_buffer); i++)
-//            {
-//                while(USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET);             
-//                USART_SendData(USART2, uart2_tx_buffer[i]);
-//            }
-//						
-//						// 3. Ждем окончания отправки последнего байта (флаг TC - Transmission Complete)
-//            while(USART_GetFlagStatus(USART2, USART_FLAG_TC) == RESET);
-//            memset(uart2_rx_buffer, 0, BUFFER_SIZE);// Очищаем буфер приема для новой строки
-//				}
-						
+        }						
 }
 
-
-
-
-void Uart2_send_string(char *str)
+//Для отправки
+void Uart2_send_string_simple(char *str)
 {
 //	char ch = *str;
 	while (*str)
@@ -164,14 +248,11 @@ void Uart2_send_string(char *str)
 void Uart2_init(void)
 {
 	USART_DeInit(USART2);
-	
-	
 	GPIO_InitTypeDef gpio_init_struct;
 	gpio_init_struct.GPIO_Mode = GPIO_Mode_AF_PP;
 	gpio_init_struct.GPIO_Pin = GPIO_Pin_2;//к RX USB TTL
 	gpio_init_struct.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &gpio_init_struct);
-	
 	
 	gpio_init_struct.GPIO_Mode = GPIO_Mode_IN_FLOATING;
 	gpio_init_struct.GPIO_Pin = GPIO_Pin_3;//к TX USB-TTL
@@ -184,19 +265,17 @@ void Uart2_init(void)
 	uart_init.USART_Parity = USART_Parity_No;
 	uart_init.USART_StopBits = USART_StopBits_1;
 	uart_init.USART_WordLength = USART_WordLength_8b;
-	
 	USART_Init(USART2, &uart_init);
 	
-	//настраиваем прерывание
+	USART_ITConfig(USART2, USART_IT_TXE, ENABLE);//
+	
 	NVIC_InitTypeDef nvic_init = {0};
 	nvic_init.NVIC_IRQChannel = USART2_IRQn;
 	nvic_init.NVIC_IRQChannelPreemptionPriority = NVIC_UART_PRIORITY;
 	nvic_init.NVIC_IRQChannelSubPriority = 0;
 	nvic_init.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&nvic_init);
-	USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
 
-	//запускаем
 	USART_Cmd(USART2, ENABLE);
 }
 

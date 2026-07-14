@@ -4,12 +4,12 @@
 #include "stm32f10x.h"
 #include "stm32f10x_flash.h"
 
-#define MAX_LOG_LENGTH 2048 //Максимально возможная длина лога для выгрузки на ПК
+#define LOG_BUFFER_SIZE 1024 //Максимально возможная длина лога для выгрузки на ПК
 #define MAX_TEMP 30
 #define MIN_TEMP 15
 #define MAX_PRESS 765
 #define MIN_PRESS 742
-#define MAX_HUMI 76
+#define MAX_HUMI 77
 #define MIN_HUMI 60
 
 extern volatile uint16_t line_count;
@@ -27,6 +27,6 @@ void Flash_write_string(const char *str);
 void Flash_read_string(char *buffer, uint16_t maxLen, volatile uint8_t flash_page_number);
 void Increment_page(void);
 uint16_t Read_log_entry(char *buffer, uint32_t address);
-uint16_t Read_page_log(char *log_buffer_uart, uint32_t page_address);
+uint16_t Read_page_log(char *log_buffer_uart, uint32_t page_address, uint16_t max_size);
 
 #endif
