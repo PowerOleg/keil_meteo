@@ -38,7 +38,7 @@ void Set_up_time_and_date(uint8_t *time, uint8_t *date)
 				OLED_UpdateScreen();
 		}
 						
-		if (symbol_index >= 0 && symbol_index <= 4)
+		if (symbol_index <= 4)
 		{
 				Input_time(time, pressed_key);
 				OLED_ClearBuffer();
@@ -80,7 +80,7 @@ int main(void)
 		Keypad_init_gpio();
 
 //	UART2
-		Uart2_init();//require Tim2
+		Uart2_init();
 
 		//SPI
 	  SPI1_common_gpio_init();
@@ -90,6 +90,7 @@ int main(void)
 				
 		BME280_gpio_init();
 		Delay_us(100000);
+		
 		//OLED DISPLAY
 		Oled_gpio_init();
 		Delay_us(100000);
@@ -101,30 +102,31 @@ int main(void)
 		SPI_clear_rxne();
 		BME280_init();
 		BME280_Result_t bmp280_result;
-		Delay_us(10000);
-	
-
+		
+		uint8_t set_time[TIME_SIZE] = {0};//08:01
+		uint8_t set_date[DATE_SIZE] = {0};//04.07.2026
+		set_time[2] = 10;
+		set_date[2] = 12;
+		set_date[5] = 12;
 
 		
-		uint8_t time[TIME_SIZE] = {0};//08:01
-		uint8_t date[10] = {0};//04.07.2026
-		time[2] = 10;
-		date[2] = 12;
-		date[5] = 12;
-		Get_last_entry_idx();
-		
-				//check led
 		Led_toggle(&led_a8);
 		Delay_us(500000);
 		Led_toggle(&led_c13);
 		Led_toggle(&led_a8);
+//		FLASH_Unlock();							// delete
+//    FLASH_ErasePage(0x0800FC00);// delete
+//    FLASH_Lock();
+		Get_last_entry_idx();
+//		initial_set_up = 0;
+		
 		
 		while(1)
 		{
 				Delay_us(10000);
 				if (initial_set_up)
 				{
-						Set_up_time_and_date(time, date);
+						Set_up_time_and_date(set_time, set_date);
 						continue;
 				}
 				
@@ -189,6 +191,14 @@ int main(void)
 								flash_page_number--;
 								cur_action = previous_action;
 								break;
+						case DELETE_LOG:
+							Delete_flash_log();
+							OLED_ClearBuffer();
+							OLED_PrintScaledSymbols(10, 0, font_table, delete_indices, 7, 2);
+							OLED_UpdateScreen();
+							cur_action = previous_action;
+							Delay_us(1000000);
+							break;
 						case SEND_DATA_TO_PC:
 						{
 								uint16_t log_size = Get_log(log_buffer_uart);
@@ -204,7 +214,17 @@ int main(void)
 								cur_action = previous_action;
 								break;
 						}
-
+						case SET_TIME:
+						{
+								memset(set_time, 0, TIME_SIZE);
+								memset(set_date, 0, DATE_SIZE);
+								set_time[2] = 10;
+								set_date[2] = 12;
+								set_date[5] = 12;
+								symbol_index = 0;
+								initial_set_up = 1;
+								break;
+						}
 				}
 				previous_action = cur_action;
 		}

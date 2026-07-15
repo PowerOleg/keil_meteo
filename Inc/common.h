@@ -5,6 +5,7 @@
 #include "stm32f10x_rcc.h"
 #include "stm32f10x_gpio.h"
 
+#define SET_TIME 0x30
 #define TIME 0x31
 #define TEMPERATURE 0x32
 #define HUMIDITY 0x33
@@ -13,6 +14,7 @@
 #define SEND_DATA_TO_PC 0x36
 #define PAGE_UP 0x41
 #define PAGE_DOWN 0x42
+#define DELETE_LOG 0x44
 
 #define NVIC_BUTTON_PRIORITY 10
 #define NVIC_SYSTICK_PRIORITY 7

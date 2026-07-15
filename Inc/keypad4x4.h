@@ -5,6 +5,7 @@
 #include "timer.h"
 
 #define TIME_SIZE 5
+#define DATE_SIZE 10
 
 #define KEYPAD_DEBOUNCE_TIME_MS 40
 #define NO_KEY 									0xFF //  онстанта дл€ обозначени€ отсутстви€ нажати€

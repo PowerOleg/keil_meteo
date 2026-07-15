@@ -97,7 +97,7 @@ const uint8_t init_message_line1[] = {20, 18, 21, 22, 23};
 const uint8_t init_message_line2[] = {32, 25, 19, 34};
 
 const uint8_t sent_indices[] = {24, 21, 18, 21, 32, 25, 37, 30};
-
+const uint8_t delete_indices[] = {34, 32, 25, 27, 21, 37, 30};
 //Битовые маски символов (5x7)
 // Цифры 0..9
 const uint8_t digit_font_5x7[10][5] = {

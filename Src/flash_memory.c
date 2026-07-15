@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include "uart.h"
 
-#define LOG_ENTRIES_PER_PAGE (LOG_PAGE_SIZE / LOG_ENTRY_SIZE) // Количество записей на страницу = 25
+#define LOG_ENTRIES_PER_PAGE 25//(LOG_PAGE_SIZE / LOG_ENTRY_SIZE) // Количество записей на страницу = 25
 
 volatile uint8_t allow_temp_log = 1;
 volatile uint8_t allow_humi_log = 1;
@@ -114,7 +114,7 @@ void Flash_read_string(char* buffer, uint16_t entry_len, volatile uint8_t page_n
 		uint32_t addr = page_addr + ((page_number - 1) * 0x28);
 		if (page_number > LOG_ENTRIES_PER_PAGE)
 		{
-				addr = START_OF_LAST_PAGE + ((page_number - LOG_ENTRIES_PER_PAGE - 1) * 0x28);//к примеру если page_number == 26 это индекс 0 для второй страницы т.е. START_OF_LAST_PAGE
+				addr = FLASH_START_OF_LAST_PAGE + ((page_number - LOG_ENTRIES_PER_PAGE - 1) * 0x28);//к примеру если page_number == 26 это индекс 0 для второй страницы т.е. FLASH_START_OF_LAST_PAGE
 		}
 	
     uint16_t data;
@@ -135,29 +135,33 @@ void Flash_read_string(char* buffer, uint16_t entry_len, volatile uint8_t page_n
 
 void Flash_write_string(const char* str)
 {
-    uint32_t addr = page_addr + (entry_idx * LOG_ENTRY_SIZE);
-	
+		uint32_t addr = 0;
+		if (entry_idx <= LOG_ENTRIES_PER_PAGE)
+		{
+				addr = FLASH_USER_START_ADDR + (entry_idx * LOG_ENTRY_SIZE);
+		}
+		else if (entry_idx > LOG_ENTRIES_PER_PAGE && entry_idx < 51)
+		{
+				addr = FLASH_START_OF_LAST_PAGE + ((entry_idx - LOG_ENTRIES_PER_PAGE - 1) * LOG_ENTRY_SIZE);
+				if (addr == FLASH_START_OF_LAST_PAGE)
+				{
+//						FLASH_Unlock();
+//						FLASH_ErasePage(addr);
+
+				}
+				
+		}
+		else
+		{
+				Delete_flash_log();
+				entry_idx = 0;
+				addr = FLASH_USER_START_ADDR + (entry_idx * LOG_ENTRY_SIZE);
+		}
+
     uint16_t data;
     int len = strlen(str) + 1; // Длина строки с нулевым символом
-		
-		 // Увеличение индекса записи
-    entry_idx++;
-	
+
 		FLASH_Unlock();
-    // Если достигли конца страницы, переходим к следующей
-		if (entry_idx >= LOG_ENTRIES_PER_PAGE)
-		{
-    entry_idx = 0;
-    // Переход к предыдущей странице
-    page_addr -= LOG_PAGE_SIZE;
-    
-    if (page_addr < START_OF_LAST_PAGE)
-        page_addr = FLASH_USER_START_ADDR;// Вернуться к последней странице, если вышли за нижнюю границу
-    
-		    // Стереть новую страницу
-        FLASH_ErasePage(page_addr);
-		}
-    
     // Записываем лог
     for (int i = 0; i < len; i += 2)
 		{
@@ -168,6 +172,64 @@ void Flash_write_string(const char* str)
         addr += 2;
     }
     FLASH_Lock();
+		// Увеличение индекса записи
+    entry_idx++;
+}
+/*
+void Flash_write_string(const char* str)
+{
+    uint32_t addr = 0;
+    uint32_t page_addr = 0;
+
+    // Определение адреса страницы и смещения
+    if (entry_idx <= LOG_ENTRIES_PER_PAGE)
+    {
+        page_addr = FLASH_USER_START_ADDR;
+        addr = page_addr + (entry_idx * LOG_ENTRY_SIZE);
+    }
+    else if (entry_idx > LOG_ENTRIES_PER_PAGE && entry_idx < 51)
+    {
+        page_addr = FLASH_START_OF_LAST_PAGE;
+        addr = page_addr + ((entry_idx - LOG_ENTRIES_PER_PAGE - 1) * LOG_ENTRY_SIZE);
+    }
+    else
+    {
+        Delete_flash_log();
+        entry_idx = 0;
+        page_addr = FLASH_USER_START_ADDR;
+        addr = page_addr + (entry_idx * LOG_ENTRY_SIZE);
+    }
+
+    // Стираем страницу перед записью
+    FLASH_Unlock();
+    FLASH_ErasePage(page_addr);
+
+    // Записываем лог
+    uint16_t data;
+    int len = strlen(str) + 1; // Длина строки с нулевым символом
+
+    for (int i = 0; i < len; i += 2)
+    {
+        data = (uint16_t)str[i];
+        if (i + 1 < len)
+            data |= (uint16_t)str[i + 1] << 8;
+        FLASH_ProgramHalfWord(addr, data);
+        addr += 2;
+    }
+
+    FLASH_Lock();
+
+    // Увеличение индекса записи
+    entry_idx++;
+}*/
+
+void Delete_flash_log(void)
+{
+		FLASH_Unlock();
+		FLASH_ErasePage(FLASH_USER_START_ADDR);
+		FLASH_ErasePage(FLASH_START_OF_LAST_PAGE);
+		FLASH_Lock();
+		entry_idx = 0;
 }
 
 /**
@@ -276,7 +338,7 @@ uint16_t Get_log(char *log_buffer_uart)
 		memset(log_buffer_uart, 0, LOG_BUFFER_SIZE);
 		uint16_t total_page_size = Read_page_log(log_buffer_uart, FLASH_USER_START_ADDR, 0);
 		if (total_page_size >= LOG_PAGE_SIZE - 100)
-				total_page_size = Read_page_log(log_buffer_uart, START_OF_LAST_PAGE, total_page_size);
+				total_page_size = Read_page_log(log_buffer_uart, FLASH_START_OF_LAST_PAGE, total_page_size);
 		
 		return total_page_size;
 }
