@@ -65,11 +65,6 @@ void Set_up_time_and_date(uint8_t *time, uint8_t *date)
 				uint8_t month = (date[3] * 10) + date[4];
 				uint16_t year = (uint16_t)(date[6] * 1000) + (uint16_t)(date[7] * 100) + (uint16_t)(date[8] * 10) + date[9];
 			
-				/*uint8_t hours = 01;
-				uint8_t minutes = 11;
-				uint8_t day = 11;
-				uint8_t month = 11;
-				uint16_t year = 2048;*/
 				RTC_init_lse(year, month, day, hours, minutes, 0);
 				cur_action = TIME;
 				initial_set_up = 0;
@@ -131,13 +126,7 @@ int main(void)
 		time[2] = 10;
 		date[2] = 12;
 		date[5] = 12;		
-		
-//        FLASH_Unlock();// delete
-//        FLASH_ErasePage(0x0800FC00);// delete
-//        FLASH_Lock();// delete
-		initial_set_up = 0;						// delete
-		
-		
+				
 		while(1)
 		{
 				Delay_us(10000);
@@ -207,7 +196,6 @@ int main(void)
 								flash_page_number--;
 								cur_action = previous_action;
 								break;
-						
 						case SEND_DATA_TO_PC:
 						{
 								memset(log_buffer_uart, 0, LOG_BUFFER_SIZE);
