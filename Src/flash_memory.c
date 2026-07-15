@@ -61,7 +61,7 @@ void Is_threshold_value(uint8_t type, int16_t value)
     switch (type) {
         case TEMPERATURE:
 						allow_temp_log = Is_timeout(&last_temp_log_time);
-            if (((value > MAX_TEMP) || (value < MIN_TEMP)) && allow_temp_log)
+            if (((value >= MAX_TEMP) || (value <= MIN_TEMP)) && allow_temp_log)
 						{
                 Flash_write_string(Get_temperature_log(value));
 								last_temp_log_time = RTC_GetRTC_Counter();
@@ -70,7 +70,7 @@ void Is_threshold_value(uint8_t type, int16_t value)
             break;
         case HUMIDITY:
 						allow_humi_log = Is_timeout(&last_humi_log_time);
-            if (((value > MAX_HUMI) || (value < MIN_HUMI)) && allow_humi_log)
+            if (((value >= MAX_HUMI) || (value <= MIN_HUMI)) && allow_humi_log)
 						{
                 Flash_write_string(Get_humidity_log(value));
 								last_humi_log_time = RTC_GetRTC_Counter();
@@ -79,7 +79,7 @@ void Is_threshold_value(uint8_t type, int16_t value)
             break;
         case PRESSURE:
 						allow_press_log = Is_timeout(&last_press_log_time);
-            if (((value > MAX_PRESS) || (value < MIN_PRESS)) && allow_press_log)
+            if (((value >= MAX_PRESS) || (value <= MIN_PRESS)) && allow_press_log)
 						{
                 Flash_write_string(Get_pressure_log(value));
 								last_press_log_time = RTC_GetRTC_Counter();

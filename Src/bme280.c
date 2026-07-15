@@ -11,6 +11,8 @@
 #define CS_LOW()    GPIO_ResetBits(GPIOA, GPIO_Pin_4)
 #define CS_HIGH()   GPIO_SetBits(GPIOA, GPIO_Pin_4)
 
+#define FILTER_WINDOW_SIZE 3   // усреднение по 3 измерениям
+
 // Глобальные переменные для калибровочных коэффициентов
 //temperature
 volatile uint16_t dig_T1;
@@ -26,6 +28,7 @@ volatile int16_t  dig_H4;
 volatile int16_t  dig_H5;
 volatile int8_t   dig_H6;
 
+volatile BME280_RawData_t raw_data;
 
 void BME280_gpio_init(void)
 {
@@ -143,13 +146,11 @@ void BMP280_ReadBytes(uint8_t reg, uint8_t *buffer, uint8_t len)
 		{
 				buffer[i] = BME280_read_byte(reg++);
 		}
-		
-
 }
 
 
 // Запуск измерения и чтение сырых значений
-void BME280_measure(BME280_RawData_t *raw)
+void BME280_measure(void)
 {
     // Запись CTRL_MEAS уже была сделана в init, но если ты хочешь менять режимы на лету,
     // здесь можно снова записать нужный режим.
@@ -163,51 +164,51 @@ void BME280_measure(BME280_RawData_t *raw)
     BMP280_ReadBytes(BME280_REG_PRESS_MSB, buffer, buffer_len);
 
     // Сборка 20-битного значения температуры
-    raw->raw_pressure = ((uint32_t)buffer[0] << 12) |
+    raw_data.raw_pressure = ((uint32_t)buffer[0] << 12) |
                            ((uint32_t)buffer[1] << 4)  |
                            ((buffer[2] >> 4) & 0x0F);
 
     // Сборка 20-битного значения давления
-    raw->raw_temperature = ((uint32_t)buffer[3] << 12) |
+    raw_data.raw_temperature = ((uint32_t)buffer[3] << 12) |
                         ((uint32_t)buffer[4] << 4)  |
                         ((buffer[5] >> 4) & 0x0F);
 	
-		raw->raw_humidity = ((uint16_t)buffer[6] << 8) | buffer[7];
+		raw_data.raw_humidity = ((uint16_t)buffer[6] << 8) | buffer[7];
 }
 
 static uint32_t BMP280_compensate_P_int32(uint32_t adc_p, int32_t t_fine)
 {
-	int32_t var1, var2;
-	uint32_t p;
-	
-	var1 = (((int32_t)t_fine >> 1) - ((int32_t)64000));
-	
-	
-	var2 = (((var1 >> 2) * (var1 >> 2)) >> 11) * ((int32_t)dig_P6);
-var2 = var2 + ((var1 * (int32_t)dig_P5) << 1);
-var2 = (var2 >> 2) + (((int32_t)dig_P4) << 16);
+		int32_t var1, var2;
+		uint32_t p;
+		
+		var1 = (((int32_t)t_fine >> 1) - ((int32_t)64000));
+		
+		
+		var2 = (((var1 >> 2) * (var1 >> 2)) >> 11) * ((int32_t)dig_P6);
+		var2 = var2 + ((var1 * (int32_t)dig_P5) << 1);
+		var2 = (var2 >> 2) + (((int32_t)dig_P4) << 16);
 
-var1 = (((dig_P3 * (((var1 >> 2) * (var1 >> 2)) >> 13)) >> 3) + ((((int32_t)dig_P2) * var1) >> 1)) >> 18;
-var1 = ((((32768 + var1)) * ((int32_t)dig_P1)) >> 15);
-	if (var1 == 0)
-	{
-		return 0;
-	}
-p = (((uint32_t)(((int32_t)1048576) - adc_p) - (var2 >> 12))) * 3125;
-if (p < 0x80000000)
-{
-		p = (p << 1) / ((uint32_t)var1);
-}
-else
-{
-	p = (p / (uint32_t)var1) * 2;
-}
-var1 = (((int32_t)dig_P9) * ((int32_t)(((p >> 3) * (p >> 3)) >> 13)))>>12;
-var2 = (((int32_t)(p >> 2)) * ((int32_t)dig_P8)) >> 13;
-p = (uint32_t)((int32_t)p + ((var1 + var2 + dig_P7) >> 4));
+		var1 = (((dig_P3 * (((var1 >> 2) * (var1 >> 2)) >> 13)) >> 3) + ((((int32_t)dig_P2) * var1) >> 1)) >> 18;
+		var1 = ((((32768 + var1)) * ((int32_t)dig_P1)) >> 15);
+		if (var1 == 0)
+		{
+			return 0;
+		}
+		p = (((uint32_t)(((int32_t)1048576) - adc_p) - (var2 >> 12))) * 3125;
+		if (p < 0x80000000)
+		{
+				p = (p << 1) / ((uint32_t)var1);
+		}
+		else
+		{
+			p = (p / (uint32_t)var1) * 2;
+		}
+		var1 = (((int32_t)dig_P9) * ((int32_t)(((p >> 3) * (p >> 3)) >> 13)))>>12;
+		var2 = (((int32_t)(p >> 2)) * ((int32_t)dig_P8)) >> 13;
+		p = (uint32_t)((int32_t)p + ((var1 + var2 + dig_P7) >> 4));
 
-uint32_t pressure_rt_st = (uint32_t)round((p / 133.322f));//1 мм рт. ст.=133,322 Па
-return pressure_rt_st;
+		uint32_t pressure_rt_st = (uint32_t)round((p / 133.322f));//1 мм рт. ст.=133,322 Па
+		return pressure_rt_st;
 }
 
 static float BMP280_compensate_H_int32(int32_t adc_H, int32_t t_fine)
@@ -231,12 +232,12 @@ static float BMP280_compensate_H_int32(int32_t adc_H, int32_t t_fine)
 		return var_H;
 }
 
-void BME280_compensate(BME280_RawData_t *raw, BME280_Result_t *result)
+void BME280_compensate(BME280_Result_t *result)
 {
 		int32_t var1, var2;
-    int32_t adc_T = (int32_t)raw->raw_temperature;
-    int32_t adc_P = (int32_t)raw->raw_pressure;
-		int32_t adc_H = (int32_t)raw->raw_humidity;
+    int32_t adc_T = (int32_t)raw_data.raw_temperature;
+    int32_t adc_P = (int32_t)raw_data.raw_pressure;
+		int32_t adc_H = (int32_t)raw_data.raw_humidity;
 
     // ---------- Temperature ----------
     var1 = ((((adc_T >> 3) - ((int32_t)dig_T1 << 1))) * ((int32_t)dig_T2)) >> 11;
@@ -250,3 +251,35 @@ void BME280_compensate(BME280_RawData_t *raw, BME280_Result_t *result)
 		// ---------- Humidity ----------
 		result->humidity = BMP280_compensate_H_int32(adc_H, t_fine);
 }
+
+void BME280_apply_filter(BME280_Result_t *result_measure)
+{
+    static float temp_buf[FILTER_WINDOW_SIZE] = {0};
+    static float hum_buf[FILTER_WINDOW_SIZE]  = {0};
+    static float press_buf[FILTER_WINDOW_SIZE] = {0};
+    static uint8_t index = 0;
+    static uint8_t count = 0;
+
+    // Сохраняем новые значения в кольцевые буферы
+    temp_buf[index]  = result_measure->temperature_c;
+    hum_buf[index]   = result_measure->humidity;
+    press_buf[index] = result_measure->pressure_mm_rt_st;  // автоматическое приведение uint32_t -> float
+
+    index = (index + 1) % FILTER_WINDOW_SIZE;
+    if (count < FILTER_WINDOW_SIZE) count++;
+
+    // Вычисляем средние
+    float sum_temp = 0.0f, sum_hum = 0.0f, sum_press = 0.0f;
+    for (uint8_t i = 0; i < count; i++) {
+        sum_temp  += temp_buf[i];
+        sum_hum   += hum_buf[i];
+        sum_press += press_buf[i];
+    }
+
+    // Записываем обратно в структуру
+    result_measure->temperature_c    = sum_temp / count;
+    result_measure->humidity         = sum_hum / count;
+    // Давление: округляем до целого
+    result_measure->pressure_mm_rt_st = (uint32_t)(sum_press / count + 0.5f);
+}
+

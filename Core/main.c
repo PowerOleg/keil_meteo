@@ -85,7 +85,7 @@ int main(void)
 		//SPI
 	  SPI1_common_gpio_init();
 		Delay_us(100000);
-		SPI1_common_init();//Oled_spi_init();
+		SPI1_common_init();
 		Delay_us(100000);
 				
 		BME280_gpio_init();
@@ -100,7 +100,6 @@ int main(void)
 		//BME280
 		SPI_clear_rxne();
 		BME280_init();
-		BME280_RawData_t raw_data;
 		BME280_Result_t bmp280_result;
 		Delay_us(10000);
 	
@@ -115,7 +114,7 @@ int main(void)
 		uint8_t date[10] = {0};//04.07.2026
 		time[2] = 10;
 		date[2] = 12;
-		date[5] = 12;		
+		date[5] = 12;
 		
 		while(1)
 		{
@@ -129,8 +128,9 @@ int main(void)
 				if (tim3_10sec_flag)
 				{
 						tim3_10sec_flag = 0;
-						BME280_measure(&raw_data);
-						BME280_compensate(&raw_data, &bmp280_result);
+						BME280_measure();
+						BME280_compensate(&bmp280_result);
+						BME280_apply_filter(&bmp280_result);
 						Is_threshold_value(TEMPERATURE, bmp280_result.temperature_c);
 						Is_threshold_value(HUMIDITY, bmp280_result.humidity);
 						Is_threshold_value(PRESSURE, bmp280_result.pressure_mm_rt_st);

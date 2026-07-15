@@ -1,7 +1,6 @@
 #ifndef __BME280_H
 #define __BME280_H
 
-
 #include "stm32f10x.h"
 // Регистры BMP280
 #define BME280_CHIP_ID   0x60   // для BME280
@@ -35,6 +34,8 @@ typedef struct {
 		uint32_t raw_humidity;
 } BME280_RawData_t;
 
+extern volatile BME280_RawData_t raw_data;
+
 void BME280_gpio_init(void);
 uint8_t SPI_transfer(uint8_t data);
 uint8_t BME280_read_byte(uint8_t reg);
@@ -42,7 +43,8 @@ void BME280_write_byte_in_reg(uint8_t reg, uint8_t data);
 void BME280_read_bytes(uint8_t reg, uint8_t *data, uint8_t len);
 uint8_t BME280_init(void);
 void BME280_read_calibration_data(void);
-void BME280_measure(BME280_RawData_t *raw);
-void BME280_compensate(BME280_RawData_t *raw, BME280_Result_t *result);
+void BME280_measure(void);
+void BME280_compensate(BME280_Result_t *result);
+void BME280_apply_filter(BME280_Result_t *result_measure);
 
 #endif
