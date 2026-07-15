@@ -1,7 +1,6 @@
 #include "rtc_functions.h"
 #include <string.h>
 #include <stdio.h>
-//#include <stdbool.h>
 
 volatile RTC_DateTimeTypeDef currentDateTime;
 

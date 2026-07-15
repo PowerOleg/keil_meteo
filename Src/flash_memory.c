@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include "uart.h"
 
-#define LOG_ENTRIES_PER_PAGE (LOG_PAGE_SIZE / LOG_ENTRY_SIZE) // Количество записей на страницу
+#define LOG_ENTRIES_PER_PAGE (LOG_PAGE_SIZE / LOG_ENTRY_SIZE) // Количество записей на страницу = 25
 
 volatile uint8_t allow_temp_log = 1;
 volatile uint8_t allow_humi_log = 1;
@@ -19,7 +19,7 @@ volatile uint32_t last_humi_log_time = 0;
 volatile uint32_t last_press_log_time = 0;
 
 static uint32_t page_addr = FLASH_USER_START_ADDR;
-static uint32_t entry_idx = 0;// Индекс текущей записи лога на странице
+volatile uint32_t entry_idx = 0;// Индекс текущей записи лога на странице
 
 
 // Глобальные переменные для отслеживания состояния страниц
@@ -90,23 +90,42 @@ void Is_threshold_value(uint8_t type, int16_t value)
 }
 
 /**
+ * @brief Функция читает строки из Flash-памяти чтобы найти крайний номер записи на странице
+ *
+ */
+void Get_last_entry_idx(void)
+{
+		static char check_entry_idx_buff[LOG_ENTRY_SIZE] = {0};
+		while ((uint8_t)check_entry_idx_buff[0] != 0xFF)
+		{
+				Flash_read_string(check_entry_idx_buff, 0x28, entry_idx + 1);
+				entry_idx++;
+		}
+		entry_idx--;
+}
+/**
  * @brief Функция чтения строки из Flash-памяти
  *
  * @param buffer Указатель на буфер для чтения данных
- * @param maxLen Максимальная длина буфера
+ * @param entry_len Максимальная длина буфера
  */
-void Flash_read_string(char* buffer, uint16_t maxLen, volatile uint8_t page_number)
+void Flash_read_string(char* buffer, uint16_t entry_len, volatile uint8_t page_number)
 {
-    uint32_t addr = page_addr + ((page_number - 1) * 0x28);
+		uint32_t addr = page_addr + ((page_number - 1) * 0x28);
+		if (page_number > LOG_ENTRIES_PER_PAGE)
+		{
+				addr = START_OF_LAST_PAGE + ((page_number - LOG_ENTRIES_PER_PAGE - 1) * 0x28);//к примеру если page_number == 26 это индекс 0 для второй страницы т.е. START_OF_LAST_PAGE
+		}
+	
     uint16_t data;
     int i = 0;
 
-    while (i < maxLen - 1 && addr <= FLASH_USER_START_ADDR + LOG_PAGE_SIZE)
+    while (i < entry_len - 1 && addr <= FLASH_USER_START_ADDR + LOG_PAGE_SIZE)
 		{
         data = *(__IO uint16_t*)addr;
         buffer[i++] = (char)(data & 0xFF);
         if (buffer[i - 1] == '\0') break;
-        if (i >= maxLen - 1) break;
+        if (i >= entry_len - 1) break;
         buffer[i++] = (char)(data >> 8);
         if (buffer[i - 1] == '\0') break;
         addr += 2;
@@ -117,6 +136,7 @@ void Flash_read_string(char* buffer, uint16_t maxLen, volatile uint8_t page_numb
 void Flash_write_string(const char* str)
 {
     uint32_t addr = page_addr + (entry_idx * LOG_ENTRY_SIZE);
+	
     uint16_t data;
     int len = strlen(str) + 1; // Длина строки с нулевым символом
 		

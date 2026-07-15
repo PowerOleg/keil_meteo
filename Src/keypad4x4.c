@@ -49,6 +49,8 @@ void Input_date(uint8_t *date, const uint8_t pressed_key)
             return;
         if (date_index == 1 && date[0] == 3 && key > 1)
             return;
+				if (date_index == 1 && date[0] == 0 && key == 0)
+            return;
 				
         // Проверка диапазона месяца
         if (date_index == 3 && key > 1)

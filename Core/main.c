@@ -103,11 +103,7 @@ int main(void)
 		BME280_Result_t bmp280_result;
 		Delay_us(10000);
 	
-		//check led
-		Led_toggle(&led_a8);
-		Delay_us(500000);
-		Led_toggle(&led_c13);
-		Led_toggle(&led_a8);
+
 
 		
 		uint8_t time[TIME_SIZE] = {0};//08:01
@@ -115,6 +111,13 @@ int main(void)
 		time[2] = 10;
 		date[2] = 12;
 		date[5] = 12;
+		Get_last_entry_idx();
+		
+				//check led
+		Led_toggle(&led_a8);
+		Delay_us(500000);
+		Led_toggle(&led_c13);
+		Led_toggle(&led_a8);
 		
 		while(1)
 		{

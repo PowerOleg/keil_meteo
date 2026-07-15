@@ -17,7 +17,7 @@
 #define MAX_HUMI 77
 #define MIN_HUMI 60
 
-extern volatile uint16_t line_count;
+extern volatile uint32_t entry_idx;
 extern volatile uint8_t flash_page_number;
 extern volatile uint8_t allow_temp_log;
 extern volatile uint8_t allow_humi_log;
@@ -28,6 +28,7 @@ char* Get_temperature_log(int16_t value);
 char* Get_humidity_log(int16_t value);
 char* Get_pressure_log(int16_t value);
 void Is_threshold_value(uint8_t type, int16_t value);
+void Get_last_entry_idx(void);
 void Flash_write_string(const char *str);
 void Flash_read_string(char *buffer, uint16_t maxLen, volatile uint8_t flash_page_number);
 uint16_t Read_log_entry(char *buffer, uint32_t address);

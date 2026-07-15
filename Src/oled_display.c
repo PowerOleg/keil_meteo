@@ -498,8 +498,6 @@ void OLED_PrintPressure(/*uint8_t x, */uint8_t y, uint32_t pressure, uint8_t sca
     OLED_PrintScaledSymbols(x_unit, y_unit, font_table, unit_idx, unit_len, unit_scale);
 }
 
-//110726 flash
-
 void Display_flash_data(char *flash_buff, const uint8_t current_page_number, const uint8_t display_number)
 {
 		const uint8_t page_offset = 20;
