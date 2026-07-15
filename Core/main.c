@@ -85,7 +85,6 @@ int main(void)
 		Init_systick_us();
 		Tim2_count_mode_up();
 		
-
 		//keypad 4x4
 		Keypad_init_gpio();
 
@@ -126,7 +125,7 @@ int main(void)
 		time[2] = 10;
 		date[2] = 12;
 		date[5] = 12;		
-				
+		
 		while(1)
 		{
 				Delay_us(10000);

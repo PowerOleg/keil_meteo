@@ -30,7 +30,6 @@ char* Get_pressure_log(int16_t value);
 void Is_threshold_value(uint8_t type, int16_t value);
 void Flash_write_string(const char *str);
 void Flash_read_string(char *buffer, uint16_t maxLen, volatile uint8_t flash_page_number);
-void Increment_page(void);
 uint16_t Read_log_entry(char *buffer, uint32_t address);
 uint16_t Read_page_log(char *log_buffer_uart, uint32_t page_address, uint16_t total_bytes_read);
 

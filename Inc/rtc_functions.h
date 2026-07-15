@@ -8,6 +8,7 @@
 
 // (UnixTime = 00:00:00 01.01.1970 = JD0 = 2440588)
 #define JULIAN_DATE_BASE 2440588
+#define DATE_FORMAT_SIZE 22
 
 typedef struct
 {

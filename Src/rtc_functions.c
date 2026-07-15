@@ -76,9 +76,9 @@ void RTC_GetDateTime(uint32_t RTC_counter)
 //[2026-07-02 08:01:03]
 char* RTC_get_format_date(volatile RTC_DateTimeTypeDef* date_time)
 {
-		static char date_buffer[FLASH_BUFFER_SIZE]; 
+		static char date_buffer[DATE_FORMAT_SIZE]; 
 		// Сначала заполняем дату
-		snprintf(date_buffer, FLASH_BUFFER_SIZE,
+		snprintf(date_buffer, DATE_FORMAT_SIZE,
                   "[%04d-%02d-%02d %02d:%02d:%02d]",
                   date_time->RTC_Year,
                   date_time->RTC_Month,
