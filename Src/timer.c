@@ -3,7 +3,6 @@
 #include "stm32f10x_tim.h"
 #include "misc.h"
 
-
 volatile uint32_t timer2_cur_time_ms = 0; 
 void TIM2_IRQHandler(void)
 {

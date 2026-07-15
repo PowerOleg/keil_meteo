@@ -17,20 +17,11 @@ volatile uint8_t previous_action = 0;
 volatile uint8_t initial_set_up = 1;
 volatile uint8_t pressed_key = 0;
 uint8_t time_indices[] = {0, 0, 10, 0, 0};// время в формате: 12:34
-char flash_buff[40];
-char log_buffer_uart[LOG_BUFFER_SIZE] = {'0'}; //Буфер для временного хранения лога
+char flash_buff[LOG_ENTRY_SIZE];
+char log_buffer_uart[LOG_BUFFER_SIZE] = {0}; //Буфер для временного хранения лога
 
 Led led_a8;
 Led led_c13;
-
-void RTC_IRQHandler(void)
-{
-    if (RTC_GetITStatus(RTC_IT_SEC) != RESET)
-    {
-				RTC_ClearITPendingBit(RTC_IT_SEC);
-        RTC_GetDateTime(RTC_GetCounter());
-    }
-}
 
 void Set_up_time_and_date(uint8_t *time, uint8_t *date)
 {
@@ -197,18 +188,10 @@ int main(void)
 								break;
 						case SEND_DATA_TO_PC:
 						{
-								memset(log_buffer_uart, 0, LOG_BUFFER_SIZE);
-								uint16_t total_page_size = Read_page_log(log_buffer_uart, FLASH_USER_START_ADDR, 0);
-								if (total_page_size >= LOG_PAGE_SIZE - 100)
+								uint16_t log_size = Get_log(log_buffer_uart);
+								if (log_size > 0)
 								{
-										uint16_t second_page_size = Read_page_log(log_buffer_uart, START_OF_LAST_PAGE, total_page_size);
-										if (second_page_size > 0)
-												total_page_size += second_page_size;
-								}
-								
-								if (total_page_size > 0)
-								{
-										Uart2_send_string(log_buffer_uart, total_page_size);
+										Uart2_send_string(log_buffer_uart, log_size);
 										while(transmission_in_progress) {}
 										OLED_ClearBuffer();
 										OLED_PrintScaledSymbols(10, 0, font_table, sent_indices, 8, 2);

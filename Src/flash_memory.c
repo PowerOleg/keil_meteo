@@ -7,7 +7,6 @@
 #include <stdbool.h>
 #include "uart.h"
 
-#define LOG_ENTRY_SIZE     40       // Размер одной записи лога в байтах
 #define LOG_ENTRIES_PER_PAGE (LOG_PAGE_SIZE / LOG_ENTRY_SIZE) // Количество записей на страницу
 
 volatile uint8_t allow_temp_log = 1;
@@ -102,7 +101,8 @@ void Flash_read_string(char* buffer, uint16_t maxLen, volatile uint8_t page_numb
     uint16_t data;
     int i = 0;
 
-    while (i < maxLen - 1 && addr <= FLASH_USER_START_ADDR + LOG_PAGE_SIZE) {
+    while (i < maxLen - 1 && addr <= FLASH_USER_START_ADDR + LOG_PAGE_SIZE)
+		{
         data = *(__IO uint16_t*)addr;
         buffer[i++] = (char)(data & 0xFF);
         if (buffer[i - 1] == '\0') break;
@@ -139,7 +139,8 @@ void Flash_write_string(const char* str)
 		}
     
     // Записываем лог
-    for (int i = 0; i < len; i += 2) {
+    for (int i = 0; i < len; i += 2)
+		{
         data = (uint16_t)str[i];
         if (i + 1 < len)
             data |= (uint16_t)str[i + 1] << 8;
@@ -161,8 +162,10 @@ static bool Is_page_empty(uint32_t page_start)
     const size_t words_per_page = LOG_PAGE_SIZE / sizeof(uint16_t); // Количество полуслов на странице
 
     // Проверяем каждое полуслово на странице
-    for (size_t i = 0; i < words_per_page; ++i) {
-        if (*(uint16_t *)(page_start + i * sizeof(uint16_t)) != empty_word) {
+    for (size_t i = 0; i < words_per_page; ++i)
+		{
+        if (*(uint16_t *)(page_start + i * sizeof(uint16_t)) != empty_word)
+				{
             return false; // Найдено непустое полуслово
         }
     }
@@ -177,21 +180,26 @@ static bool Is_page_empty(uint32_t page_start)
  * @param address Текущий адрес чтения
  * @return Количество прочитанных байтов
  */
-uint16_t Read_log_entry(char* buffer, uint32_t address) {
+uint16_t Read_log_entry(char* buffer, uint32_t address)
+{
     uint16_t bytes_read = 0;
     uint16_t word_data;
 
-    while (bytes_read < LOG_ENTRY_SIZE) {
+    while (bytes_read < LOG_ENTRY_SIZE)
+		{
         word_data = *(uint16_t*)address;
         buffer[bytes_read++] = (char)(word_data & 0xFF); // Младший байт
-        if (buffer[bytes_read - 1] == ']') {
+        if (buffer[bytes_read - 1] == ']')
+				{
             buffer[bytes_read] = '\0';
             return bytes_read;
         }
 
-        if (bytes_read < LOG_ENTRY_SIZE) {
+        if (bytes_read < LOG_ENTRY_SIZE)
+				{
             buffer[bytes_read++] = (char)(word_data >> 8); // Старший байт
-            if (buffer[bytes_read - 1] == ']') {
+            if (buffer[bytes_read - 1] == ']')
+						{
                 buffer[bytes_read] = '\0';
                 return bytes_read;
             }
@@ -207,9 +215,8 @@ uint16_t Read_log_entry(char* buffer, uint32_t address) {
 /**
  * @brief Функция чтения из флеш-памяти и формирования текста для одной страницы размером максимум 1024 байт
  *
- * @return Размер полученного лога в байтах
+ * @return Размер лога с учетом добавленных символов
  */
-
 uint16_t Read_page_log(char *log_buffer_uart, uint32_t page_address, uint16_t total_bytes_read)
 {
     if (Is_page_empty(page_address)) return 0;
@@ -217,7 +224,8 @@ uint16_t Read_page_log(char *log_buffer_uart, uint32_t page_address, uint16_t to
     uint32_t entry_address = page_address;
     uint8_t entry_count = 0;
 
-    while (entry_address < page_address + LOG_PAGE_SIZE) {
+    while (entry_address < page_address + LOG_PAGE_SIZE)
+		{
         static char temp_buffer[LOG_ENTRY_SIZE];
         uint16_t bytes_read = Read_log_entry(temp_buffer, entry_address);
 
@@ -238,3 +246,17 @@ uint16_t Read_page_log(char *log_buffer_uart, uint32_t page_address, uint16_t to
     return total_bytes_read;
 }
 
+/**
+ * @brief Функция чтения из флеш-памяти и формирования текста для двух страниц максимум поскольку размер буфера 2048 байт
+ *
+ * @return Размер полученного лога в байтах
+ */
+uint16_t Get_log(char *log_buffer_uart)
+{
+		memset(log_buffer_uart, 0, LOG_BUFFER_SIZE);
+		uint16_t total_page_size = Read_page_log(log_buffer_uart, FLASH_USER_START_ADDR, 0);
+		if (total_page_size >= LOG_PAGE_SIZE - 100)
+				total_page_size = Read_page_log(log_buffer_uart, START_OF_LAST_PAGE, total_page_size);
+		
+		return total_page_size;
+}

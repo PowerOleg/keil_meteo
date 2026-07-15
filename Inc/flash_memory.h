@@ -8,7 +8,7 @@
 #define FLASH_USER_START_ADDR   0x0800FC00  //адрес начала последней страницы
 #define START_OF_LAST_PAGE			0x0800F800	//адрес последней страницы при условии что нумераци€ страниц от идет конца к началу
 #define LOG_PAGE_SIZE      1024     // –азмер одной страницы в байтах
-
+#define LOG_ENTRY_SIZE     40       // –азмер одной записи лога в байтах
 #define LOG_BUFFER_SIZE 2048 //ћаксимально возможна€ длина лога дл€ выгрузки на ѕ 
 #define MAX_TEMP 30
 #define MIN_TEMP 15
@@ -32,5 +32,6 @@ void Flash_write_string(const char *str);
 void Flash_read_string(char *buffer, uint16_t maxLen, volatile uint8_t flash_page_number);
 uint16_t Read_log_entry(char *buffer, uint32_t address);
 uint16_t Read_page_log(char *log_buffer_uart, uint32_t page_address, uint16_t total_bytes_read);
+uint16_t Get_log(char *log_buffer_uart);
 
 #endif

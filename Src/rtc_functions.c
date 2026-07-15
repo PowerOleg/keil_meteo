@@ -5,6 +5,14 @@
 
 volatile RTC_DateTimeTypeDef currentDateTime;
 
+void RTC_IRQHandler(void)
+{
+    if (RTC_GetITStatus(RTC_IT_SEC) != RESET)
+    {
+				RTC_ClearITPendingBit(RTC_IT_SEC);
+        RTC_GetDateTime(RTC_GetCounter());
+    }
+}
 
 uint32_t RTC_GetRTC_Counter(void)
 {
