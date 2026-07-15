@@ -267,7 +267,7 @@ void Uart2_init(void)
 	uart_init.USART_WordLength = USART_WordLength_8b;
 	USART_Init(USART2, &uart_init);
 	
-	USART_ITConfig(USART2, USART_IT_TXE, ENABLE);//
+//	USART_ITConfig(USART2, USART_IT_TXE, ENABLE);//буфер пуст поэтому не включаем
 	
 	NVIC_InitTypeDef nvic_init = {0};
 	nvic_init.NVIC_IRQChannel = USART2_IRQn;

@@ -210,32 +210,28 @@ int main(void)
 						
 						case SEND_DATA_TO_PC:
 						{
-								cur_action = TIME;
 								memset(log_buffer_uart, 0, LOG_BUFFER_SIZE);
-								uint16_t page_size = Read_page_log(log_buffer_uart, 0x0800FC00, LOG_BUFFER_SIZE);
-						
-								if (page_size > 0)
+								uint16_t total_page_size = Read_page_log(log_buffer_uart, FLASH_USER_START_ADDR, 0);
+								if (total_page_size >= LOG_PAGE_SIZE - 100)
 								{
-//									Display_flash_data(log_buffer_uart, flash_page_number, 1);
-//									OLED_UpdateScreen();
-//										__disable_irq();
-										Uart2_send_string(log_buffer_uart, page_size);//Uart2_send_string(log_buffer_uart);
-										
+										uint16_t second_page_size = Read_page_log(log_buffer_uart, START_OF_LAST_PAGE, total_page_size);
+										if (second_page_size > 0)
+												total_page_size += second_page_size;
+								}
+								
+								if (total_page_size > 0)
+								{
+										Uart2_send_string(log_buffer_uart, total_page_size);
 										while(transmission_in_progress) {}
-//										__enable_irq();	
+										OLED_ClearBuffer();
+										OLED_PrintScaledSymbols(10, 0, font_table, sent_indices, 8, 2);
+										OLED_UpdateScreen();
+										Delay_us(1000000);
 								}
-								else
-								{
-//										Uart2_send_string("No logs available\r\n");
-								}
-						//OLED_PrintScaledSymbols(10, 0, font_table, "нропюбкемн мю ой", 9, 2);
-						//OLED_UpdateScreen();
+								cur_action = previous_action;
 								break;
 						}
-						
-								
-		
-		
+
 				}
 				previous_action = cur_action;
 		}

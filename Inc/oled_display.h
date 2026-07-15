@@ -65,6 +65,8 @@ extern const uint8_t pressure_indices[];
 extern const uint8_t init_message_line0[];
 extern const uint8_t init_message_line1[];
 extern const uint8_t init_message_line2[];
+extern const uint8_t sent_indices[];
+
 
 void Oled_gpio_init(void);
 void Oled_spi_init(void);

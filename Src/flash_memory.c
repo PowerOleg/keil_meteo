@@ -7,11 +7,7 @@
 #include <stdbool.h>
 #include "uart.h"
 
-#define TIMEOUT_VALUE 28800U								//записывает лог не чаще чем каждые 8 часов
-#define FLASH_USER_START_ADDR   0x0800FC00  //адрес начала последней страницы
-#define START_OF_LAST_PAGE			0x0800F400	//адрес последней страницы при условии что нумерация страниц от идет конца к началу
 
-#define LOG_PAGE_SIZE      1024     // Размер страницы в байтах
 #define LOG_ENTRY_SIZE     40       // Размер одной записи лога в байтах
 #define LOG_ENTRIES_PER_PAGE (LOG_PAGE_SIZE / LOG_ENTRY_SIZE) // Количество записей на страницу
 
@@ -37,7 +33,6 @@ char *Get_temperature_log(int16_t value)
 {
     static char log_buffer[FLASH_BUFFER_SIZE];
     snprintf(log_buffer, sizeof(log_buffer), "T %d %s", value, RTC_get_format_date(&currentDateTime));
-//		Uart2_send_string(log_buffer);																													//delete
     return log_buffer;
 }
 
@@ -46,7 +41,6 @@ char *Get_humidity_log(int16_t value)
 {
     static char log_buffer[FLASH_BUFFER_SIZE];
     snprintf(log_buffer, sizeof(log_buffer), "H %d %s", value, RTC_get_format_date(&currentDateTime));
-//		Uart2_send_string(log_buffer);																													//delete
     return log_buffer;
 }
 
@@ -55,7 +49,6 @@ char *Get_pressure_log(int16_t value)
 {
     static char log_buffer[FLASH_BUFFER_SIZE];
     snprintf(log_buffer, sizeof(log_buffer), "P %d %s", value, RTC_get_format_date(&currentDateTime));
-//		Uart2_send_string(log_buffer);																													//delete
     return log_buffer;
 }
 
@@ -243,23 +236,22 @@ uint16_t Read_log_entry(char* buffer, uint32_t address) {
  * @return Размер полученного лога в байтах
  */
 
-uint16_t Read_page_log(char *log_buffer_uart, uint32_t page_address, uint16_t max_size)
+uint16_t Read_page_log(char *log_buffer_uart, uint32_t page_address, uint16_t total_bytes_read)
 {
-    uint16_t total_bytes_read = 0;
     if (Is_page_empty(page_address)) return 0;
 
     uint32_t entry_address = page_address;
     uint8_t entry_count = 0;
 
     while (entry_address < page_address + LOG_PAGE_SIZE) {
-        char temp_buffer[LOG_ENTRY_SIZE];
+        static char temp_buffer[LOG_ENTRY_SIZE];
         uint16_t bytes_read = Read_log_entry(temp_buffer, entry_address);
 
-        if (bytes_read == 0 || temp_buffer[0] == '\0') break;
+        if (bytes_read == 0 || (uint8_t)temp_buffer[0] == 0xFF) break;
         if (++entry_count >= LOG_ENTRIES_PER_PAGE) break;
 
         // Проверка: поместятся ли сама запись + \r\n
-        if (total_bytes_read + bytes_read + 2 > max_size) break;
+        if (total_bytes_read + bytes_read + 2 > LOG_BUFFER_SIZE) break;
 
         memcpy(log_buffer_uart + total_bytes_read, temp_buffer, bytes_read);
         total_bytes_read += bytes_read;
