@@ -10,11 +10,11 @@
 #define LOG_PAGE_SIZE      1024     // Размер одной страницы в байтах
 #define LOG_ENTRY_SIZE     40       // Размер одной записи лога в байтах
 #define LOG_BUFFER_SIZE 2048 //Максимально возможная длина лога для выгрузки на ПК
-#define MAX_TEMP 25
+#define MAX_TEMP 30
 #define MIN_TEMP 15
 #define MAX_PRESS 765
-#define MIN_PRESS 742
-#define MAX_HUMI 75
+#define MIN_PRESS 740
+#define MAX_HUMI 76
 #define MIN_HUMI 60
 
 extern volatile uint32_t entry_idx;

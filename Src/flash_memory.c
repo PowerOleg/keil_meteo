@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include "uart.h"
 
-#define LOG_ENTRIES_PER_PAGE 25//(LOG_PAGE_SIZE / LOG_ENTRY_SIZE) // Количество записей на страницу = 25
+#define LOG_ENTRIES_PER_PAGE 25	//(LOG_PAGE_SIZE / LOG_ENTRY_SIZE) = 25 // Количество записей на страницу 
 
 volatile uint8_t allow_temp_log = 1;
 volatile uint8_t allow_humi_log = 1;
@@ -139,15 +139,21 @@ void Flash_write_string(const char* str)
 		if (entry_idx <= LOG_ENTRIES_PER_PAGE)
 		{
 				addr = FLASH_USER_START_ADDR + (entry_idx * LOG_ENTRY_SIZE);
+				if (addr == FLASH_USER_START_ADDR)
+				{
+						FLASH_Unlock();
+						FLASH_ErasePage(addr);
+						FLASH_Lock();
+				}
 		}
 		else if (entry_idx > LOG_ENTRIES_PER_PAGE && entry_idx < 51)
 		{
 				addr = FLASH_START_OF_LAST_PAGE + ((entry_idx - LOG_ENTRIES_PER_PAGE - 1) * LOG_ENTRY_SIZE);
 				if (addr == FLASH_START_OF_LAST_PAGE)
 				{
-//						FLASH_Unlock();
-//						FLASH_ErasePage(addr);
-
+						FLASH_Unlock();
+						FLASH_ErasePage(addr);
+						FLASH_Lock();
 				}
 				
 		}
@@ -159,7 +165,7 @@ void Flash_write_string(const char* str)
 		}
 
     uint16_t data;
-    int len = strlen(str) + 1; // Длина строки с нулевым символом
+    int len = strlen(str) + 1;
 
 		FLASH_Unlock();
     // Записываем лог
@@ -172,56 +178,9 @@ void Flash_write_string(const char* str)
         addr += 2;
     }
     FLASH_Lock();
-		// Увеличение индекса записи
+
     entry_idx++;
 }
-/*
-void Flash_write_string(const char* str)
-{
-    uint32_t addr = 0;
-    uint32_t page_addr = 0;
-
-    // Определение адреса страницы и смещения
-    if (entry_idx <= LOG_ENTRIES_PER_PAGE)
-    {
-        page_addr = FLASH_USER_START_ADDR;
-        addr = page_addr + (entry_idx * LOG_ENTRY_SIZE);
-    }
-    else if (entry_idx > LOG_ENTRIES_PER_PAGE && entry_idx < 51)
-    {
-        page_addr = FLASH_START_OF_LAST_PAGE;
-        addr = page_addr + ((entry_idx - LOG_ENTRIES_PER_PAGE - 1) * LOG_ENTRY_SIZE);
-    }
-    else
-    {
-        Delete_flash_log();
-        entry_idx = 0;
-        page_addr = FLASH_USER_START_ADDR;
-        addr = page_addr + (entry_idx * LOG_ENTRY_SIZE);
-    }
-
-    // Стираем страницу перед записью
-    FLASH_Unlock();
-    FLASH_ErasePage(page_addr);
-
-    // Записываем лог
-    uint16_t data;
-    int len = strlen(str) + 1; // Длина строки с нулевым символом
-
-    for (int i = 0; i < len; i += 2)
-    {
-        data = (uint16_t)str[i];
-        if (i + 1 < len)
-            data |= (uint16_t)str[i + 1] << 8;
-        FLASH_ProgramHalfWord(addr, data);
-        addr += 2;
-    }
-
-    FLASH_Lock();
-
-    // Увеличение индекса записи
-    entry_idx++;
-}*/
 
 void Delete_flash_log(void)
 {
