@@ -409,6 +409,11 @@
               <FileType>1</FileType>
               <FilePath>.\Src\hw_config.c</FilePath>
             </File>
+            <File>
+              <FileName>log_definitions.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Core\log_definitions.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -651,5 +656,14 @@
       </file>
     </files>
   </RTE>
+
+  <LayerInfo>
+    <Layers>
+      <Layer>
+        <LayName>meteo</LayName>
+        <LayPrjMark>1</LayPrjMark>
+      </Layer>
+    </Layers>
+  </LayerInfo>
 
 </Project>

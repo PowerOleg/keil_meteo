@@ -573,6 +573,11 @@ void Display_flash_data(char *flash_buff, const uint8_t current_page_number, con
 								line1_size = index_count;
 								break;
 						}
+						else if ((uint8_t)flash_buff[src_index] == 0xFF)
+						{
+								line1_size = index_count;
+								break;
+						}
 						else if (flash_buff[src_index] == '\n')
 						{
 								continue;
@@ -592,6 +597,11 @@ void Display_flash_data(char *flash_buff, const uint8_t current_page_number, con
 						else if (flash_buff[src_index] == ' ')
 								oled_line2[j++] = 35;
 						else if (flash_buff[src_index] == ']')
+						{
+								line2_size = j;
+								break;
+						}
+						else if ((uint8_t)flash_buff[src_index] == 0xFF)
 						{
 								line2_size = j;
 								break;

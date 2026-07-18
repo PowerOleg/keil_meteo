@@ -16,9 +16,9 @@ volatile uint8_t previous_action = 0;
 
 volatile uint8_t initial_set_up = 1;
 volatile uint8_t pressed_key = 0;
-uint8_t time_indices[] = {0, 0, 10, 0, 0};// время в формате: 12:34
-char flash_buff[LOG_ENTRY_SIZE];
-char log_buffer_uart[LOG_BUFFER_SIZE] = {0}; //Буфер для временного хранения лога
+uint8_t time_indices[] = {0, 0, 10, 0, 0};// Время в формате: 12:34
+char display_buffer[LOG_ENTRY_SIZE] = {0};
+char log_buffer_uart[LOG_BUFFER_SIZE] = {0};// Буфер для отправки лога на ПК
 
 Led led_a8;
 Led led_c13;
@@ -66,7 +66,7 @@ void Set_up_time_and_date(uint8_t *time, uint8_t *date)
 int main(void)
 {
 		if (Clock_config_72mhz() == ERROR)
-			Error_handler();
+				Error_handler();
 
 		RCC_APB2PeriphClockCmd((RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC | RCC_APB2Periph_SPI1), ENABLE);
 		RCC_APB1PeriphClockCmd((RCC_APB1Periph_USART2 | RCC_APB1Periph_PWR | RCC_APB1Periph_BKP), ENABLE);
@@ -76,29 +76,21 @@ int main(void)
 		Init_systick_us();
 		Tim2_count_mode_up();
 		
-		//keypad 4x4
 		Keypad_init_gpio();
-
-//	UART2
 		Uart2_init();
 
-		//SPI
 	  SPI1_common_gpio_init();
 		Delay_us(100000);
 		SPI1_common_init();
 		Delay_us(100000);
-				
 		BME280_gpio_init();
 		Delay_us(100000);
-		
-		//OLED DISPLAY
 		Oled_gpio_init();
 		Delay_us(100000);
 		OLED_Init_SSD1306();
 		Delay_us(100000);
     OLED_ClearBuffer();
 	
-		//BME280
 		SPI_clear_rxne();
 		BME280_init();
 		BME280_Result_t bmp280_result;
@@ -108,19 +100,14 @@ int main(void)
 		set_time[2] = 10;
 		set_date[2] = 12;
 		set_date[5] = 12;
-
 		
 		Led_toggle(&led_a8);
 		Delay_us(500000);
 		Led_toggle(&led_c13);
 		Led_toggle(&led_a8);
-//		FLASH_Unlock();							// delete
-//    FLASH_ErasePage(0x0800FC00);// delete
-//    FLASH_Lock();
 		Get_last_entry_idx();
-//		initial_set_up = 0;
-		
-		
+		Restart_flash_log(log_buffer_uart);
+
 		while(1)
 		{
 				Delay_us(10000);
@@ -175,12 +162,12 @@ int main(void)
 								break;
 						case MIN_MAX_LOG:
 								OLED_ClearBuffer();
-								Flash_read_string(flash_buff, 0x28, flash_page_number);
-								Display_flash_data(flash_buff, flash_page_number, 1);
-								Flash_read_string(flash_buff, 0x28, flash_page_number + 1);
-								Display_flash_data(flash_buff, flash_page_number + 1, 2);
-								Flash_read_string(flash_buff, 0x28, flash_page_number + 2);
-								Display_flash_data(flash_buff, flash_page_number + 2, 3);
+								Flash_read_string(display_buffer, 0x28, flash_page_number);
+								Display_flash_data(display_buffer, flash_page_number, 1);
+								Flash_read_string(display_buffer, 0x28, flash_page_number + 1);
+								Display_flash_data(display_buffer, flash_page_number + 1, 2);
+								Flash_read_string(display_buffer, 0x28, flash_page_number + 2);
+								Display_flash_data(display_buffer, flash_page_number + 2, 3);
 								OLED_UpdateScreen();
 								break;
 						case PAGE_UP:
@@ -192,13 +179,13 @@ int main(void)
 								cur_action = previous_action;
 								break;
 						case DELETE_LOG:
-							Delete_flash_log();
-							OLED_ClearBuffer();
-							OLED_PrintScaledSymbols(10, 0, font_table, delete_indices, 7, 2);
-							OLED_UpdateScreen();
-							cur_action = previous_action;
-							Delay_us(1000000);
-							break;
+								Delete_flash_log();
+								OLED_ClearBuffer();
+								OLED_PrintScaledSymbols(10, 0, font_table, delete_indices, 7, 2);
+								OLED_UpdateScreen();
+								cur_action = previous_action;
+								Delay_us(1000000);
+								break;
 						case SEND_DATA_TO_PC:
 						{
 								uint16_t log_size = Get_log(log_buffer_uart);

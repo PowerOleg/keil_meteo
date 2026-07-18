@@ -1,5 +1,6 @@
 #include "flash_memory.h"
 #include "common.h"
+#include "log_definitions.h"
 #include "rtc_functions.h"
 #include <stdio.h>
 #include <string.h>
@@ -19,7 +20,7 @@ volatile uint32_t last_humi_log_time = 0;
 volatile uint32_t last_press_log_time = 0;
 
 static uint32_t page_addr = FLASH_USER_START_ADDR;
-volatile uint32_t entry_idx = 0;// Индекс текущей записи лога на странице
+volatile uint16_t entry_idx = 0;// Индекс текущей записи лога на странице
 
 
 // Глобальные переменные для отслеживания состояния страниц
@@ -52,7 +53,7 @@ char *Get_pressure_log(int16_t value)
 static uint8_t Is_timeout(volatile uint32_t *last_temp_log_time)
 {
 		uint32_t current_time = RTC_GetRTC_Counter();
-		return current_time - *last_temp_log_time >= TIMEOUT_VALUE;
+		return current_time - *last_temp_log_time >= TIMEOUT_WRITE_LOG;
 }
 
 // Проверка превышения порогов и запись в память
@@ -63,7 +64,7 @@ void Is_threshold_value(uint8_t type, int16_t value)
 						allow_temp_log = Is_timeout(&last_temp_log_time);
             if (((value >= MAX_TEMP) || (value <= MIN_TEMP)) && allow_temp_log)
 						{
-                Flash_write_string(Get_temperature_log(value));
+                Flash_write_entry(Get_temperature_log(value));
 								last_temp_log_time = RTC_GetRTC_Counter();
 								allow_temp_log = 0;
             }
@@ -72,7 +73,7 @@ void Is_threshold_value(uint8_t type, int16_t value)
 						allow_humi_log = Is_timeout(&last_humi_log_time);
             if (((value >= MAX_HUMI) || (value <= MIN_HUMI)) && allow_humi_log)
 						{
-                Flash_write_string(Get_humidity_log(value));
+                Flash_write_entry(Get_humidity_log(value));
 								last_humi_log_time = RTC_GetRTC_Counter();
 								allow_humi_log = 0;
             }
@@ -81,7 +82,7 @@ void Is_threshold_value(uint8_t type, int16_t value)
 						allow_press_log = Is_timeout(&last_press_log_time);
             if (((value >= MAX_PRESS) || (value <= MIN_PRESS)) && allow_press_log)
 						{
-                Flash_write_string(Get_pressure_log(value));
+                Flash_write_entry(Get_pressure_log(value));
 								last_press_log_time = RTC_GetRTC_Counter();
 								allow_press_log = 0;
             }
@@ -93,15 +94,15 @@ void Is_threshold_value(uint8_t type, int16_t value)
  * @brief Функция читает строки из Flash-памяти чтобы найти крайний номер записи на странице
  *
  */
-void Get_last_entry_idx(void)
+uint16_t Get_last_entry_idx(void)
 {
 		static char check_entry_idx_buff[LOG_ENTRY_SIZE] = {0};
 		while ((uint8_t)check_entry_idx_buff[0] != 0xFF)
 		{
-				Flash_read_string(check_entry_idx_buff, 0x28, entry_idx + 1);
+				Flash_read_string(check_entry_idx_buff, LOG_ENTRY_SIZE, entry_idx + 1);
 				entry_idx++;
 		}
-		entry_idx--;
+		return --entry_idx;
 }
 /**
  * @brief Функция чтения строки из Flash-памяти
@@ -133,7 +134,7 @@ void Flash_read_string(char* buffer, uint16_t entry_len, volatile uint8_t page_n
     buffer[i] = '\0'; // Завершаем строку нулевым символом
 }
 
-void Flash_write_string(const char* str)
+void Flash_write_entry(const char* str)
 {
 		uint32_t addr = 0;
 		if (entry_idx <= LOG_ENTRIES_PER_PAGE)
@@ -164,6 +165,13 @@ void Flash_write_string(const char* str)
 				addr = FLASH_USER_START_ADDR + (entry_idx * LOG_ENTRY_SIZE);
 		}
 
+		uint16_t read_data = *(__IO uint16_t*)addr;
+    if (read_data != 0xFFFF)
+		{
+				entry_idx++;
+				return;
+		}
+		
     uint16_t data;
     int len = strlen(str) + 1;
 
@@ -288,6 +296,35 @@ uint16_t Read_page_log(char *log_buffer_uart, uint32_t page_address, uint16_t to
 }
 
 /**
+ * @brief Функция копирования символов подряд из флеш-памяти
+ *
+ * 
+ */
+void Flash_copy(char *buffer, uint32_t source_address, uint16_t size)
+{
+    if (!buffer || !size) return;
+		if (size > LOG_PAGE_SIZE)
+				size = LOG_PAGE_SIZE;
+		
+		const uint16_t* src_ptr = (const uint16_t*)source_address;
+		char* dest_ptr = buffer;
+		
+		for (uint16_t i = 0; i < size / 2; ++i) {
+        uint16_t data = *(src_ptr + i); // Читаем полуслова (16 бит)
+        
+        // Разбиваем полуслово на два байта и сохраняем их последовательно
+        *dest_ptr++ = (char)(data & 0xFF);
+        *dest_ptr++ = (char)((data >> 8) & 0xFF);
+    }
+    
+    // Если осталось ещё один байт (при нечётном размере)
+    if (size % 2 != 0) {
+        uint16_t last_data = *(src_ptr + size / 2);
+        *dest_ptr = (char)(last_data & 0xFF);
+    }
+}
+
+/**
  * @brief Функция чтения из флеш-памяти и формирования текста для двух страниц максимум поскольку размер буфера 2048 байт
  *
  * @return Размер полученного лога в байтах
@@ -300,4 +337,58 @@ uint16_t Get_log(char *log_buffer_uart)
 				total_page_size = Read_page_log(log_buffer_uart, FLASH_START_OF_LAST_PAGE, total_page_size);
 		
 		return total_page_size;
+}
+
+void Restart_flash_log(char *log_buffer)
+{
+		memset(log_buffer, 0, LOG_BUFFER_SIZE);
+		uint16_t log_size = (entry_idx * LOG_ENTRY_SIZE);
+
+		if (log_size <= 0)
+				return;
+		
+		if (log_size > LOG_PAGE_SIZE)
+		{
+				Flash_copy(log_buffer, FLASH_USER_START_ADDR, log_size);
+				Flash_copy((log_buffer + LOG_PAGE_SIZE), FLASH_START_OF_LAST_PAGE, (log_size - LOG_PAGE_SIZE));
+				FLASH_Unlock();
+				FLASH_ErasePage(FLASH_USER_START_ADDR);
+				FLASH_ErasePage(FLASH_START_OF_LAST_PAGE);
+				FLASH_Lock();
+				// Первая часть (до 1024 байт) - первая страница
+        Write_page(FLASH_USER_START_ADDR, log_buffer, LOG_PAGE_SIZE);
+        // Оставшаяся часть - вторая страница
+        Write_page(FLASH_START_OF_LAST_PAGE, (log_buffer + LOG_PAGE_SIZE), (log_size - LOG_PAGE_SIZE));
+		}
+		else
+		{
+				Flash_copy(log_buffer, FLASH_USER_START_ADDR, log_size);
+				FLASH_Unlock();
+				FLASH_ErasePage(FLASH_USER_START_ADDR);
+				FLASH_Lock();
+				Write_page(FLASH_USER_START_ADDR, log_buffer, log_size);
+		}
+}
+
+/**
+ * @brief Запись данных во флеш-память
+ *
+ * @param addr      Адрес страницы во flash-памяти
+ * @param buffer    Указатель на буфер с данными
+ * @param size      Количество байтов для записи (не более LOG_PAGE_SIZE)
+ */
+void Write_page(uint32_t addr, const char* buffer, uint16_t size)
+{
+    if (size > LOG_PAGE_SIZE)
+        size = LOG_PAGE_SIZE;
+    FLASH_Unlock();
+    
+    // Цикл записи данных полубайтовыми словами (16 бит)
+    for (uint16_t i = 0; i < size; i += 2)
+		{
+        uint16_t data = *(const uint16_t*)(buffer + i);
+        FLASH_ProgramHalfWord(addr, data);
+        addr += 2; // Переход к следующему адресу
+    }
+    FLASH_Lock();
 }

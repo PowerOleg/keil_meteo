@@ -25,9 +25,9 @@
 #define NVIC_UART_PRIORITY 1
 
 typedef unsigned char bool; 
-typedef unsigned          char uint8_t; 
-typedef unsigned short     int uint16_t; 
-typedef unsigned           int uint32_t; 
+typedef unsigned char uint8_t; 
+typedef unsigned short int uint16_t; 
+typedef unsigned int uint32_t; 
  
 #define true    1 
 #define false   0 
